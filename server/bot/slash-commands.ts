@@ -282,8 +282,45 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
       break;
       
     case CommandCategory.ANTIPING:
-      // Use the original text command implementation
-      await advancedImplementationNeeded();
+      switch (command.name) {
+        case 'antiping':
+          // Handle subcommands for antiping
+          const subcommand = interaction.options.getSubcommand(true);
+          
+          if (subcommand === 'enable') {
+            // Handle enable subcommand
+            const args = ['on']; // Use 'on' for the enable subcommand
+            await command.execute(mockMessage, args, interaction.client);
+          } else if (subcommand === 'disable') {
+            // Handle disable subcommand
+            const args = ['off']; // Use 'off' for the disable subcommand
+            await command.execute(mockMessage, args, interaction.client);
+          } else if (subcommand === 'set-bypass-role') {
+            // Handle set-bypass-role subcommand
+            const role = interaction.options.getRole('role');
+            if (!role) {
+              await mockMessage.reply('Please specify a role.');
+              return;
+            }
+            const args = ['bypass', role.id];
+            await command.execute(mockMessage, args, interaction.client);
+          } else if (subcommand === 'set-protected-role') {
+            // Handle set-protected-role subcommand
+            const role = interaction.options.getRole('role');
+            if (!role) {
+              await mockMessage.reply('Please specify a role.');
+              return;
+            }
+            const args = ['protect', role.id];
+            await command.execute(mockMessage, args, interaction.client);
+          } else {
+            // Default case for unknown subcommands
+            await advancedImplementationNeeded();
+          }
+          break;
+        default:
+          await advancedImplementationNeeded();
+      }
       break;
       
     case CommandCategory.GIVEAWAY:
