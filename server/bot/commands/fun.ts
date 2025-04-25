@@ -135,7 +135,81 @@ const dadJokes = [
   'Why did the bicycle fall over? Because it was two tired!'
 ];
 
+// Reminder tracking (in-memory for simplicity)
+const activeReminders = new Map<string, NodeJS.Timeout>();
+
 export const funCommands: Command[] = [
+  // New Reminder command
+  {
+    name: 'reminder',
+    description: 'Sets a reminder for a specified time in the future',
+    usage: '+reminder [time in minutes] [reminder text]',
+    aliases: ['remind', 'remindme'],
+    category: CommandCategory.FUN,
+    cooldown: 5,
+    requiredPermissions: [],
+    execute: async (message, args) => {
+      // Validate arguments
+      if (args.length < 2) {
+        return message.reply('Please provide a time in minutes and a message. Example: `+reminder 10 Take a break`');
+      }
+      
+      // Parse minutes
+      const minutes = parseInt(args[0]);
+      if (isNaN(minutes) || minutes <= 0 || minutes > 1440) { // max 24 hours (1440 minutes)
+        return message.reply('Please provide a valid time in minutes (between 1 and 1440).');
+      }
+      
+      // Get reminder text
+      const reminderText = args.slice(1).join(' ');
+      
+      // Create unique ID for this reminder
+      const reminderId = `${message.author.id}-${Date.now()}`;
+      
+      // Create embed for confirmation
+      const confirmEmbed = new EmbedBuilder()
+        .setColor(0x5865F2)
+        .setTitle('⏰ Reminder Set')
+        .setDescription(`I'll remind you about "${reminderText}" in ${minutes} minute${minutes !== 1 ? 's' : ''}.`)
+        .setFooter({ text: `Requested by ${message.author.tag}`, iconURL: message.author.displayAvatarURL() })
+        .setTimestamp();
+      
+      await message.reply({ embeds: [confirmEmbed] });
+      
+      // Set timeout for the reminder
+      const timeout = setTimeout(async () => {
+        try {
+          // Create reminder embed
+          const reminderEmbed = new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setTitle('⏰ Reminder')
+            .setDescription(`You asked me to remind you: "${reminderText}"`)
+            .setFooter({ text: `Reminder set ${minutes} minute${minutes !== 1 ? 's' : ''} ago` })
+            .setTimestamp();
+          
+          // Try to DM the user first
+          try {
+            await message.author.send({ embeds: [reminderEmbed] });
+          } catch (err) {
+            // If DM fails, send in the channel where it was requested
+            await message.channel.send({ 
+              content: `<@${message.author.id}>, here's your reminder:`,
+              embeds: [reminderEmbed] 
+            });
+          }
+          
+          // Clean up the reminder
+          activeReminders.delete(reminderId);
+        } catch (error) {
+          console.error('Error sending reminder:', error);
+        }
+      }, minutes * 60 * 1000);
+      
+      // Store the timeout reference
+      activeReminders.set(reminderId, timeout);
+    }
+  },
+  
   // 1. 8ball command
   {
     name: '8ball',

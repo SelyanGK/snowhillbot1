@@ -1,18 +1,234 @@
-import { Command } from '../utils';
+import { Command, getCommandPrefix } from '../utils';
 import { CommandCategory } from '@shared/schema';
-import { EmbedBuilder, version as discordJsVersion } from 'discord.js';
+import { EmbedBuilder, version as discordJsVersion, TextChannel, PermissionsBitField } from 'discord.js';
 import { incrementCommandsUsed } from '../index';
 import { storage } from '../../storage';
 import { performance } from 'perf_hooks';
 import os from 'os';
 
+// Schedule tracking for recurring messages
+interface ScheduledMessage {
+  id: string;
+  channelId: string;
+  serverId: string;
+  createdBy: string;
+  content: string;
+  interval: number; // in minutes
+  nextRun: Date;
+  timer: NodeJS.Timeout;
+}
+
+const scheduledMessages = new Map<string, ScheduledMessage>();
+
 // Utility commands collection
 export const utilityCommands: Command[] = [
+  // New Schedule command
+  {
+    name: 'schedule',
+    description: 'Schedule recurring messages in a channel',
+    usage: '+schedule [action] [parameters]',
+    aliases: ['recurring', 'recur'],
+    category: CommandCategory.UTILITY,
+    cooldown: 10,
+    requiredPermissions: ['ManageMessages'],
+    execute: async (message, args) => {
+      if (!message.guild) {
+        return message.reply('This command can only be used in a server.');
+      }
+      
+      const prefix = getCommandPrefix(message);
+      
+      // Check for sufficient permissions
+      if (!message.member?.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+        return message.reply('You need the **Manage Messages** permission to use this command.');
+      }
+      
+      // If no args provided, show help
+      if (args.length === 0) {
+        const embed = new EmbedBuilder()
+          .setColor(0x5865F2)
+          .setTitle('📅 Scheduled Messages')
+          .setDescription('Schedule messages to be sent automatically at regular intervals.')
+          .addFields(
+            { name: `${prefix}schedule create [interval] [channel] [message]`, value: 'Creates a new scheduled message.\n' +
+              '• interval: Time in minutes between messages (15-10080)\n' +
+              '• channel: The target channel (mention)\n' +
+              '• message: The message content to send', inline: false },
+            { name: `${prefix}schedule list`, value: 'Lists all scheduled messages for this server.', inline: false },
+            { name: `${prefix}schedule remove [id]`, value: 'Removes a scheduled message by its ID.', inline: false },
+            { name: 'Examples', value: `${prefix}schedule create 60 #announcements Daily reminder to check announcements!\n` +
+              `${prefix}schedule list\n` +
+              `${prefix}schedule remove 123456`, inline: false }
+          )
+          .setFooter({ text: 'Scheduled messages persist until manually removed or the bot restarts.' });
+        
+        return message.reply({ embeds: [embed] });
+      }
+      
+      const action = args[0]?.toLowerCase();
+      
+      // Handle different actions
+      switch (action) {
+        case 'create':
+        case 'add':
+        case 'new':
+          // Check arguments
+          if (args.length < 4) {
+            return message.reply(`Please provide all required parameters: ${prefix}schedule create [interval] [channel] [message]`);
+          }
+          
+          // Parse interval
+          const interval = parseInt(args[1]);
+          if (isNaN(interval) || interval < 15 || interval > 10080) { // 15 min to 7 days (10080 min)
+            return message.reply('Please provide a valid interval between 15 and 10080 minutes (7 days).');
+          }
+          
+          // Parse channel
+          const channelMention = args[2];
+          const channelId = channelMention.replace(/[<#>]/g, '');
+          const channel = message.guild.channels.cache.get(channelId);
+          
+          if (!channel || !(channel instanceof TextChannel)) {
+            return message.reply('Please provide a valid text channel.');
+          }
+          
+          // Check bot permissions for the channel
+          const permissions = channel.permissionsFor(message.guild.members.me!);
+          if (!permissions || !permissions.has(['SendMessages', 'ViewChannel'])) {
+            return message.reply(`I don't have permission to send messages in ${channel}.`);
+          }
+          
+          // Get message content
+          const content = args.slice(3).join(' ');
+          if (!content || content.length > 2000) {
+            return message.reply('Please provide a valid message content (1-2000 characters).');
+          }
+          
+          // Create a unique ID for this scheduled message
+          const id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+          const nextRun = new Date(Date.now() + interval * 60000);
+          
+          // Set up recurring timer
+          const timer = setInterval(async () => {
+            try {
+              await channel.send(content);
+              
+              // Update next run time
+              const scheduled = scheduledMessages.get(id);
+              if (scheduled) {
+                scheduled.nextRun = new Date(Date.now() + interval * 60000);
+              }
+            } catch (error) {
+              console.error(`Error sending scheduled message ${id}:`, error);
+              
+              // If channel no longer exists or bot lost permissions, clean up
+              try {
+                const ch = message.guild!.channels.cache.get(channel.id);
+                if (!ch || !(ch instanceof TextChannel)) {
+                  clearInterval(timer);
+                  scheduledMessages.delete(id);
+                  console.log(`Removed scheduled message ${id} - channel no longer exists.`);
+                }
+              } catch (e) {
+                // Ignore errors in cleanup
+              }
+            }
+          }, interval * 60000);
+          
+          // Store scheduled message
+          scheduledMessages.set(id, {
+            id,
+            channelId: channel.id,
+            serverId: message.guild.id,
+            createdBy: message.author.id,
+            content,
+            interval,
+            nextRun,
+            timer
+          });
+          
+          // Send confirmation
+          const embed = new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setTitle('📅 Scheduled Message Created')
+            .addFields(
+              { name: 'ID', value: id, inline: true },
+              { name: 'Interval', value: `${interval} minutes`, inline: true },
+              { name: 'Channel', value: `<#${channel.id}>`, inline: true },
+              { name: 'First Run', value: `<t:${Math.floor(nextRun.getTime() / 1000)}:R>`, inline: true },
+              { name: 'Created By', value: `<@${message.author.id}>`, inline: true },
+              { name: 'Message Content', value: content.length > 1024 ? content.substring(0, 1021) + '...' : content }
+            );
+          
+          return message.reply({ embeds: [embed] });
+        
+        case 'list':
+          // Get all scheduled messages for this server
+          const serverSchedules = Array.from(scheduledMessages.values())
+            .filter(schedule => schedule.serverId === message.guild!.id);
+          
+          if (serverSchedules.length === 0) {
+            return message.reply('There are no scheduled messages in this server.');
+          }
+          
+          // Create embed with list
+          const listEmbed = new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setTitle(`📅 Scheduled Messages (${serverSchedules.length})`)
+            .setDescription('Here are all the scheduled messages for this server:');
+          
+          // Add fields for each scheduled message
+          serverSchedules.forEach(schedule => {
+            const channel = message.guild!.channels.cache.get(schedule.channelId);
+            const channelName = channel ? `<#${channel.id}>` : 'Unknown Channel';
+            
+            listEmbed.addFields({
+              name: `ID: ${schedule.id}`,
+              value: `**Channel:** ${channelName}\n` +
+                `**Interval:** ${schedule.interval} minutes\n` +
+                `**Next Run:** <t:${Math.floor(schedule.nextRun.getTime() / 1000)}:R>\n` +
+                `**Content:** ${schedule.content.length > 100 ? schedule.content.substring(0, 97) + '...' : schedule.content}`
+            });
+          });
+          
+          return message.reply({ embeds: [listEmbed] });
+        
+        case 'remove':
+        case 'delete':
+          // Check for ID
+          if (args.length < 2) {
+            return message.reply(`Please provide the ID of the scheduled message to remove: ${prefix}schedule remove [id]`);
+          }
+          
+          const removeId = args[1];
+          const scheduleToRemove = scheduledMessages.get(removeId);
+          
+          // Check if schedule exists and belongs to this server
+          if (!scheduleToRemove) {
+            return message.reply(`No scheduled message found with ID: ${removeId}`);
+          }
+          
+          if (scheduleToRemove.serverId !== message.guild.id) {
+            return message.reply(`No scheduled message found with ID: ${removeId}`);
+          }
+          
+          // Clear interval and remove from map
+          clearInterval(scheduleToRemove.timer);
+          scheduledMessages.delete(removeId);
+          
+          return message.reply(`✅ Scheduled message with ID ${removeId} has been removed.`);
+        
+        default:
+          return message.reply(`Unknown action: ${action}. Use \`${prefix}schedule\` for help.`);
+      }
+    }
+  },
+  
   // 1. Ping command
   {
     name: 'ping',
     description: 'Checks the bot\'s response time',
-    usage: '!ping',
+    usage: '+ping',
     category: CommandCategory.UTILITY,
     cooldown: 5,
     requiredPermissions: [],
