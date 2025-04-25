@@ -3,6 +3,7 @@ import { funCommands } from './fun';
 import { moderationCommands } from './moderation';
 import { utilityCommands } from './utility';
 import { antipingCommands } from './antiping';
+import { loggingCommands } from './logging';
 import { Command } from '../utils';
 import { CommandCategory } from '@shared/schema';
 
@@ -105,6 +106,7 @@ export async function loadCommands(): Promise<Collection<string, Command>> {
     ...moderationCommands,
     ...utilityCommands,
     ...antipingCommands,
+    ...loggingCommands,
     helpCommand // Add the help command
   ];
 
@@ -123,6 +125,7 @@ export function getAllCommands(): Command[] {
     ...moderationCommands,
     ...utilityCommands,
     ...antipingCommands,
+    ...loggingCommands,
     helpCommand
   ];
 }

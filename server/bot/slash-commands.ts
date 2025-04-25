@@ -7,10 +7,8 @@ import { CommandCategory } from '@shared/schema';
 /**
  * Sets up slash command interaction handlers
  */
-// Helper function for commands that haven't been fully implemented yet
-async function advancedImplementationNeeded() {
-  return interaction.editReply('This command is currently being implemented. Please try again later!');
-}
+// This function is declared later in the file - no need to have it at the top level
+// Will be removed here to avoid confusion
 
 export function setupSlashCommands(client: Client) {
   client.on('interactionCreate', async (interaction: Interaction) => {
@@ -408,10 +406,10 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
         
         case 'help':
           const categories = Object.values(CommandCategory);
-          const commandsByCategory = {};
+          const commandsByCategory: Record<string, string[]> = {};
           
           // Group commands by category
-          for (const cmd of client.commands.values()) {
+          for (const cmd of interaction.client.commands.values()) {
             if (!commandsByCategory[cmd.category]) {
               commandsByCategory[cmd.category] = [];
             }
