@@ -628,7 +628,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'clear',
     description: 'Deletes a specified number of messages from the channel',
-    usage: '+clear <number> [optional: @user]',
+    usage: '+clear <amount> [optional: @user]',
     aliases: ['purge', 'prune'],
     category: CommandCategory.MODERATION,
     cooldown: 5,
@@ -1054,7 +1054,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'role',
     description: 'Adds or removes a role from a user',
-    usage: '!role [@user] [@role]',
+    usage: '+role <@user> <@role>',
     category: CommandCategory.MODERATION,
     cooldown: 5,
     requiredPermissions: [PermissionsBitField.Flags.ManageRoles],
@@ -1164,7 +1164,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'setprefix',
     description: 'Changes the command prefix for the server',
-    usage: '!setprefix [new prefix]',
+    usage: '+setprefix <new prefix>',
     category: CommandCategory.MODERATION,
     cooldown: 10,
     requiredPermissions: [PermissionsBitField.Flags.ManageGuild],
