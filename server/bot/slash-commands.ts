@@ -291,15 +291,16 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           const banReason = interaction.options.getString('reason') || 'No reason provided';
           
           // Create args array: [user, duration (if provided), reason]
-          const banArgs = [banUser.toString()];
+          // Format user mention properly for Discord.js
+          const banArgs = [`<@${banUser.id}>`];
           
           // Add duration if provided
           if (banDuration) {
             banArgs.push(banDuration);
           }
           
-          // Add reason
-          banArgs.push(...banReason.split(' '));
+          // Add reason as a single string (not split into separate words)
+          banArgs.push(banReason);
           
           await command.execute(mockMessage, banArgs, interaction.client);
           break;
@@ -316,15 +317,16 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           const kickReason = interaction.options.getString('reason') || 'No reason provided';
           
           // Create args array: [user, duration (if provided), reason]
-          const kickArgs = [kickUser.toString()];
+          // Format user mention properly for Discord.js
+          const kickArgs = [`<@${kickUser.id}>`];
           
           // Add duration if provided
           if (kickDuration) {
             kickArgs.push(kickDuration);
           }
           
-          // Add reason
-          kickArgs.push(...kickReason.split(' '));
+          // Add reason as a single string (not split into separate words)
+          kickArgs.push(kickReason);
           
           await command.execute(mockMessage, kickArgs, interaction.client);
           break;
@@ -340,7 +342,8 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           
           const duration = interaction.options.getString('duration') || '1h';
           const muteReason = interaction.options.getString('reason') || 'No reason provided';
-          const muteArgs = [muteUser.toString(), duration, ...muteReason.split(' ')];
+          // Format user mention properly for Discord.js
+          const muteArgs = [`<@${muteUser.id}>`, duration, muteReason];
           await command.execute(mockMessage, muteArgs, interaction.client);
           break;
           
@@ -353,7 +356,8 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
             return;
           }
           
-          const unmuteArgs = [unmuteUser.toString()];
+          // Format user mention properly for Discord.js
+          const unmuteArgs = [`<@${unmuteUser.id}>`];
           await command.execute(mockMessage, unmuteArgs, interaction.client);
           break;
           
@@ -372,10 +376,15 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           
         case 'slowmode':
           // Handle slowmode command
-          const channel = interaction.options.getChannel('channel') || interaction.channel;
+          const slowmodeChannel = interaction.options.getChannel('channel') || interaction.channel;
           const seconds = interaction.options.getInteger('amount') || 0;
           
-          const slowmodeArgs = [channel.toString(), seconds.toString()];
+          // Check if the channel is not null
+          if (!slowmodeChannel) {
+            return await mockMessage.reply('Invalid channel.');
+          }
+          
+          const slowmodeArgs = [slowmodeChannel.toString(), seconds.toString()];
           await command.execute(mockMessage, slowmodeArgs, interaction.client);
           break;
           
@@ -453,14 +462,31 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
         case 'gcreate':
         case 'gcreategiveaway':
           // Handle giveaway creation
-          const gChannel = interaction.options.getChannel('gchannel');
-          const gDuration = interaction.options.getString('gduration');
+          // Add debug logging to see what options are available
+          console.log('Giveaway command options:', interaction.options);
+          
+          // Check for options with various parameter names (handling multiple possibilities)
+          // Prioritize the expected parameter names now that we've standardized them
+          const gChannel = interaction.options.getChannel('channel') || 
+                           interaction.options.getChannel('gchannel');
+                           
+          const gDuration = interaction.options.getString('duration') || 
+                            interaction.options.getString('gduration');
+                            
           const prize = interaction.options.getString('prize');
           const winners = interaction.options.getInteger('winners') || 1;
           const requiredRole = interaction.options.getRole('required-role');
           
+          console.log('Giveaway params:', { gChannel, gDuration, prize, winners, requiredRole });
+          
           if (!gChannel || !gDuration || !prize) {
-            return await mockMessage.reply('Missing required fields: channel, duration and prize are all required!');
+            // Show more detailed errors to help debug
+            const missing = [];
+            if (!gChannel) missing.push('channel');
+            if (!gDuration) missing.push('duration');
+            if (!prize) missing.push('prize');
+            
+            return await mockMessage.reply(`Missing required fields: ${missing.join(', ')} - please make sure all required options are provided.`);
           }
           
           const createArgs = [

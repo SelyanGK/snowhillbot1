@@ -147,7 +147,7 @@ export async function deploySlashCommands(clientId: string, token: string) {
             // Add channel option if not already added
             if (!hasChannelOption) {
               builder.addChannelOption(option =>
-                option.setName('gchannel')
+                option.setName('channel')  // Using 'channel' instead of 'gchannel' for consistency
                   .setDescription('The channel to post the giveaway in')
                   .setRequired(true));
             }
@@ -155,7 +155,7 @@ export async function deploySlashCommands(clientId: string, token: string) {
             // Add duration option if not already added
             if (!hasDurationOption) {
               builder.addStringOption(option =>
-                option.setName('gduration')
+                option.setName('duration')  // Using 'duration' instead of 'gduration' for consistency
                   .setDescription('The duration of the giveaway (e.g. 1h, 1d, 1w)')
                   .setRequired(true));
             }
