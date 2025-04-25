@@ -189,7 +189,6 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
   const start = performance.now();
 
   // Create a mock Message object to pass to the original execute function
-  // This will allow us to reuse the exact same code for both text and slash commands
   const mockMessage = {
     author: interaction.user,
     member: interaction.member,
@@ -197,8 +196,8 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     guild: interaction.guild,
     client: interaction.client,
     content: `/${command.name}`,
-    commandName: command.name, // Special property to identify slash commands
-    mentions: { // Add mentions object with users and roles collections
+    commandName: command.name,
+    mentions: {
       users: {
         first: () => user
       },
@@ -208,9 +207,7 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     },
     reply: async (content: any) => {
       try {
-        // Check if the interaction has been replied to or deferred
         if (interaction.replied || interaction.deferred) {
-          // Use followUp for interactions that have been replied to or deferred
           if (typeof content === 'string') {
             return await interaction.followUp(content);
           } else if (content.embeds) {
@@ -219,7 +216,6 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
             return await interaction.followUp(content);
           }
         } else {
-          // Use reply for interactions that haven't been replied to yet
           if (typeof content === 'string') {
             return await interaction.reply(content);
           } else if (content.embeds) {
@@ -230,7 +226,6 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
         }
       } catch (error) {
         console.error('Error replying to interaction:', error);
-        // If an error occurs, try one last attempt to send a message
         try {
           return await interaction.followUp({
             content: 'There was an error processing your command.',
@@ -242,17 +237,13 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
         }
       }
     },
-    // Add more methods/properties as needed
     delete: async () => {
-      // Can't delete an interaction, so this is a no-op
       return Promise.resolve();
     }
   };
   
-  // Convert slash command options to text command args
   const args: string[] = [];
   
-  // Add each option to args to match text command format
   if (user) args.push(user.id);
   if (role) args.push(role.id);
   if (channel) args.push(channel.id);
@@ -261,15 +252,12 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
   if (duration) args.push(duration);
   if (amount !== null && amount !== undefined) args.push(amount.toString());
   
-  // Helper function for commands that need more advanced implementation  
   const advancedImplementationNeeded = async () => {
     try {
-      // Attempt to use the original command's execute method
       await command.execute(mockMessage, args, interaction.client);
     } catch (error) {
       console.error("Error executing command:", error);
       
-      // Check if the interaction has already been replied to
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({
           content: 'This command has advanced features that are available using the text command. Try using `+' + command.name + '` for full functionality.',
@@ -288,7 +276,6 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     case CommandCategory.MODERATION:
       switch (command.name) {
         case 'ban':
-          // Handle ban command
           const banUser = interaction.options.getUser('user');
           if (!banUser) {
             await mockMessage.reply('Please specify a user to ban.');
@@ -298,23 +285,14 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           const banDuration = interaction.options.getString('duration') || null;
           const banReason = interaction.options.getString('reason') || 'No reason provided';
           
-          // Create args array: [user, duration (if provided), reason]
-          // Format user mention properly for Discord.js
           const banArgs = [`<@${banUser.id}>`];
-          
-          // Add duration if provided
-          if (banDuration) {
-            banArgs.push(banDuration);
-          }
-          
-          // Add reason as a single string (not split into separate words)
+          if (banDuration) banArgs.push(banDuration);
           banArgs.push(banReason);
           
           await command.execute(mockMessage, banArgs, interaction.client);
           break;
           
         case 'kick':
-          // Handle kick command
           const kickUser = interaction.options.getUser('user');
           if (!kickUser) {
             await mockMessage.reply('Please specify a user to kick.');
@@ -324,16 +302,8 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           const kickDuration = interaction.options.getString('duration') || null;
           const kickReason = interaction.options.getString('reason') || 'No reason provided';
           
-          // Create args array: [user, duration (if provided), reason]
-          // Format user mention properly for Discord.js
           const kickArgs = [`<@${kickUser.id}>`];
-          
-          // Add duration if provided
-          if (kickDuration) {
-            kickArgs.push(kickDuration);
-          }
-          
-          // Add reason as a single string (not split into separate words)
+          if (kickDuration) kickArgs.push(kickDuration);
           kickArgs.push(kickReason);
           
           await command.execute(mockMessage, kickArgs, interaction.client);
@@ -341,58 +311,56 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           
         case 'timeout':
         case 'mute':
-          // Handle timeout/mute command
           const muteUser = interaction.options.getUser('user');
           if (!muteUser) {
             await mockMessage.reply('Please specify a user to timeout/mute.');
             return;
           }
           
-          const duration = interaction.options.getString('duration') || '1h';
+          const muteDuration = interaction.options.getString('duration') || '1h';
           const muteReason = interaction.options.getString('reason') || 'No reason provided';
-          // Format user mention properly for Discord.js
-          const muteArgs = [`<@${muteUser.id}>`, duration, muteReason];
+          const muteArgs = [`<@${muteUser.id}>`, muteDuration, muteReason];
           await command.execute(mockMessage, muteArgs, interaction.client);
           break;
           
         case 'untimeout':
         case 'unmute':
-          // Handle untimeout/unmute command
           const unmuteUser = interaction.options.getUser('user');
           if (!unmuteUser) {
             await mockMessage.reply('Please specify a user to remove timeout/unmute.');
             return;
           }
           
-          // Format user mention properly for Discord.js
           const unmuteArgs = [`<@${unmuteUser.id}>`];
           await command.execute(mockMessage, unmuteArgs, interaction.client);
           break;
           
         case 'clear':
         case 'purge':
-          // Handle clear/purge command
-          const amount = interaction.options.getInteger('amount');
-          if (!amount) {
+          const purgeAmount = interaction.options.getInteger('amount');
+          if (!purgeAmount) {
             await mockMessage.reply('Please specify the number of messages to delete.');
             return;
           }
           
-          const clearArgs = [amount.toString()];
-          await command.execute(mockMessage, clearArgs, interaction.client);
+          const purgeArgs = [purgeAmount.toString()];
+          await command.execute(mockMessage, purgeArgs, interaction.client);
           break;
           
         case 'slowmode':
-          // Handle slowmode command
+          // Fixed slowmode command with proper seconds parameter
           const slowmodeChannel = interaction.options.getChannel('channel') || interaction.channel;
-          const seconds = interaction.options.getInteger('amount') || 0;
+          const seconds = interaction.options.getInteger('seconds') || 0;
           
-          // Check if the channel is not null
           if (!slowmodeChannel) {
             return await mockMessage.reply('Invalid channel.');
           }
           
-          const slowmodeArgs = [slowmodeChannel.toString(), seconds.toString()];
+          if (seconds < 0 || seconds > 21600) {
+            return await mockMessage.reply('Slowmode duration must be between 0 and 21600 seconds (6 hours).');
+          }
+          
+          const slowmodeArgs = [slowmodeChannel.id, seconds.toString()];
           await command.execute(mockMessage, slowmodeArgs, interaction.client);
           break;
           
@@ -405,27 +373,21 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
       switch (command.name) {
         case 'antiping':
           try {
-            // Handle subcommands for antiping
             const subcommand = interaction.options.getSubcommand(true);
-            console.log("Antiping subcommand called:", subcommand);
             
             if (subcommand === 'enable') {
-              // Handle enable subcommand (maps to 'on' in the text command)
               await command.execute(mockMessage, ['on'], interaction.client);
             } 
             else if (subcommand === 'disable') {
-              // Handle disable subcommand (maps to 'off' in the text command)
               await command.execute(mockMessage, ['off'], interaction.client);
             } 
             else if (subcommand === 'set-bypass-role') {
-              // Handle set-bypass-role subcommand
               const role = interaction.options.getRole('role');
               if (!role) {
                 await mockMessage.reply('Please specify a role.');
                 return;
               }
               
-              // Create more complete mockMessage with mentions.roles for the bypass command
               const bypassMockMessage = {
                 ...mockMessage,
                 mentions: {
@@ -436,18 +398,15 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
                 }
               };
               
-              // Use 'bypass' action for the first argument
               await command.execute(bypassMockMessage, ['bypass'], interaction.client);
             } 
             else if (subcommand === 'set-protected-role') {
-              // Handle set-protected-role subcommand
               const role = interaction.options.getRole('role');
               if (!role) {
                 await mockMessage.reply('Please specify a role.');
                 return;
               }
               
-              // Create more complete mockMessage with mentions.roles for the protect command
               const protectMockMessage = {
                 ...mockMessage,
                 mentions: {
@@ -458,18 +417,15 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
                 }
               };
               
-              // Use 'protect' action for the first argument
               await command.execute(protectMockMessage, ['protect'], interaction.client);
             } 
             else if (subcommand === 'add-excluded-role') {
-              // Handle add-excluded-role subcommand
               const role = interaction.options.getRole('role');
               if (!role) {
                 await mockMessage.reply('Please specify a role.');
                 return;
               }
               
-              // Create more complete mockMessage with mentions.roles for the exclude command
               const excludeMockMessage = {
                 ...mockMessage,
                 mentions: {
@@ -480,18 +436,15 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
                 }
               };
               
-              // Use 'exclude' action for the first argument
               await command.execute(excludeMockMessage, ['exclude'], interaction.client);
             } 
             else if (subcommand === 'remove-excluded-role') {
-              // Handle remove-excluded-role subcommand
               const role = interaction.options.getRole('role');
               if (!role) {
                 await mockMessage.reply('Please specify a role.');
                 return;
               }
               
-              // Create more complete mockMessage with mentions.roles for the include command
               const includeMockMessage = {
                 ...mockMessage,
                 mentions: {
@@ -502,15 +455,12 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
                 }
               };
               
-              // Use 'include' action for the first argument
               await command.execute(includeMockMessage, ['include'], interaction.client);
             } 
             else if (subcommand === 'settings') {
-              // Handle settings subcommand - no args needed for settings display
               await command.execute(mockMessage, ['settings'], interaction.client);
             } 
             else {
-              // Default case for unknown subcommands
               await mockMessage.reply(`Unknown subcommand: ${subcommand}. Please use one of: enable, disable, set-bypass-role, set-protected-role, add-excluded-role, remove-excluded-role, settings.`);
             }
           } catch (error) {
@@ -527,31 +477,19 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
       switch (command.name) {
         case 'gcreate':
         case 'gcreategiveaway':
-          // Handle giveaway creation
-          // Add debug logging to see what options are available
-          console.log('Giveaway command options:', interaction.options);
-          
-          // Check for options with various parameter names (handling multiple possibilities)
-          // Prioritize the expected parameter names now that we've standardized them
           const gChannel = interaction.options.getChannel('channel') || 
                            interaction.options.getChannel('gchannel');
-                           
           const gDuration = interaction.options.getString('duration') || 
                             interaction.options.getString('gduration');
-                            
           const prize = interaction.options.getString('prize');
           const winners = interaction.options.getInteger('winners') || 1;
           const requiredRole = interaction.options.getRole('required-role');
           
-          console.log('Giveaway params:', { gChannel, gDuration, prize, winners, requiredRole });
-          
           if (!gChannel || !gDuration || !prize) {
-            // Show more detailed errors to help debug
             const missing = [];
             if (!gChannel) missing.push('channel');
             if (!gDuration) missing.push('duration');
             if (!prize) missing.push('prize');
-            
             return await mockMessage.reply(`Missing required fields: ${missing.join(', ')} - please make sure all required options are provided.`);
           }
           
@@ -561,19 +499,13 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
             prize
           ];
           
-          if (winners !== 1) {
-            createArgs.push(winners.toString());
-          }
-          
-          if (requiredRole) {
-            createArgs.push(requiredRole.id);
-          }
+          if (winners !== 1) createArgs.push(winners.toString());
+          if (requiredRole) createArgs.push(requiredRole.id);
           
           await command.execute(mockMessage, createArgs, interaction.client);
           break;
           
         case 'gend':
-          // Handle giveaway ending
           const endGiveawayId = interaction.options.getInteger('giveaway-id');
           if (!endGiveawayId) {
             return await mockMessage.reply('Please provide a giveaway ID!');
@@ -583,7 +515,6 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           break;
           
         case 'greroll':
-          // Handle giveaway reroll
           const rerollGiveawayId = interaction.options.getInteger('giveaway-id');
           const rerollCount = interaction.options.getInteger('count') || 1;
           
@@ -592,9 +523,7 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           }
           
           const rerollArgs = [rerollGiveawayId.toString()];
-          if (rerollCount !== 1) {
-            rerollArgs.push(rerollCount.toString());
-          }
+          if (rerollCount !== 1) rerollArgs.push(rerollCount.toString());
           
           await command.execute(mockMessage, rerollArgs, interaction.client);
           break;
@@ -607,38 +536,32 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     case CommandCategory.UTILITY:
       switch (command.name) {
         case 'ping':
-          // Simple ping command, no args needed
           await command.execute(mockMessage, [], interaction.client);
           break;
           
         case 'help':
-          // Help command with optional category parameter
           const helpCategory = interaction.options.getString('category');
           const helpArgs = helpCategory ? [helpCategory] : [];
           await command.execute(mockMessage, helpArgs, interaction.client);
           break;
           
         case 'serverinfo':
-          // Server info command, no args needed
           await command.execute(mockMessage, [], interaction.client);
           break;
           
         case 'userinfo':
-          // User info command with optional user parameter
           const userInfoTarget = interaction.options.getUser('user');
           const userInfoArgs = userInfoTarget ? [userInfoTarget.id] : [];
           await command.execute(mockMessage, userInfoArgs, interaction.client);
           break;
           
         case 'avatar':
-          // Avatar command with optional user parameter
           const avatarTarget = interaction.options.getUser('user');
           const avatarArgs = avatarTarget ? [avatarTarget.id] : [];
           await command.execute(mockMessage, avatarArgs, interaction.client);
           break;
           
         case 'poll':
-          // Poll command with question and options
           const question = interaction.options.getString('message');
           const options = interaction.options.getString('options');
           
@@ -647,15 +570,12 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           }
           
           const pollArgs = [question];
-          if (options) {
-            pollArgs.push(options);
-          }
+          if (options) pollArgs.push(options);
           
           await command.execute(mockMessage, pollArgs, interaction.client);
           break;
           
         default:
-          // For other utility commands
           await advancedImplementationNeeded();
       }
       break;
@@ -663,7 +583,6 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     case CommandCategory.FUN:
       switch (command.name) {
         case '8ball':
-          // 8ball command with question parameter
           const question8ball = interaction.options.getString('question');
           if (!question8ball) {
             return await mockMessage.reply('Please ask a question!');
@@ -673,36 +592,30 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           break;
           
         case 'roll':
-          // Roll command with optional sides parameter
           const sides = interaction.options.getInteger('amount');
           const rollArgs = sides ? [sides.toString()] : [];
           await command.execute(mockMessage, rollArgs, interaction.client);
           break;
           
         case 'coinflip':
-          // Coinflip command, no args needed
           await command.execute(mockMessage, [], interaction.client);
           break;
           
         case 'rps':
-          // Rock, paper, scissors command with choice parameter
           const choice = interaction.options.getString('message');
           const rpsArgs = choice ? [choice] : [];
           await command.execute(mockMessage, rpsArgs, interaction.client);
           break;
           
         case 'joke':
-          // Joke command, no args needed
           await command.execute(mockMessage, [], interaction.client);
           break;
           
         case 'fact':
-          // Fact command, no args needed
           await command.execute(mockMessage, [], interaction.client);
           break;
           
         default:
-          // For other fun commands
           await advancedImplementationNeeded();
       }
       break;
