@@ -66,7 +66,7 @@ app.use((req, res, next) => {
   }
 
   // Use process.env.PORT if set, otherwise fallback to 5001
-  const port = process.env.PORT || 7182;
+  const port = process.env.PORT || 7188;
   server.listen({
     port,
     host: "0.0.0.0",
