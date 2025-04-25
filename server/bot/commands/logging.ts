@@ -1,6 +1,6 @@
 import { Message, PermissionFlagsBits, TextChannel, Client, EmbedBuilder, Colors } from 'discord.js';
 import { CommandCategory } from '@shared/schema';
-import { Command } from '../utils';
+import { Command, getCommandPrefix } from '../utils';
 import { 
   enableLogging, 
   disableLogging, 
@@ -37,7 +37,7 @@ async function displayLoggingStatus(message: Message, guildId: string) {
       { name: "🛠️ Server Events", value: `${eventStatus[LogEvent.CHANNEL_CREATE]} Channel Create\n${eventStatus[LogEvent.CHANNEL_DELETE]} Channel Delete\n${eventStatus[LogEvent.CHANNEL_UPDATE]} Channel Update\n${eventStatus[LogEvent.ROLE_CREATE]} Role Create\n${eventStatus[LogEvent.ROLE_DELETE]} Role Delete\n${eventStatus[LogEvent.ROLE_UPDATE]} Role Update`, inline: true },
       { name: "🛡️ Moderation Events", value: `${eventStatus[LogEvent.MOD_ACTION]} Moderation Actions`, inline: true }
     )
-    .setFooter({ text: "Use +logs enable <channel> to turn on logging" })
+    .setFooter({ text: `Use ${getCommandPrefix(message)}logs enable <channel> to turn on logging` })
     .setTimestamp();
 
   await message.channel.send({ embeds: [embed] });
@@ -66,11 +66,8 @@ function getEventNameMap(): Record<string, LogEvent> {
 function displayEventList(message: Message) {
   const eventMap = getEventNameMap();
   
-  // Determine if this was called via slash command
-  const isSlashCommand = (message as any).commandName !== undefined;
-  
-  // Set the prefix based on invocation method
-  const prefix = isSlashCommand ? '/' : '+';
+  // Get the appropriate command prefix
+  const prefix = getCommandPrefix(message);
   
   const embed = new EmbedBuilder()
     .setTitle("Available Log Event Types")
@@ -120,9 +117,8 @@ export const loggingCommands: Command[] = [
         case 'enable':
           // Check if a channel was specified
           if (args.length < 2) {
-            // Determine if this was called via slash command
-            const isSlashCommand = (message as any).commandName !== undefined;
-            const prefix = isSlashCommand ? '/' : '+';
+            // Get the appropriate command prefix
+            const prefix = getCommandPrefix(message);
             await message.reply(`You need to specify a channel. Usage: \`${prefix}logs enable #channel\``);
             return;
           }
@@ -180,9 +176,8 @@ export const loggingCommands: Command[] = [
           }
           
           if (args.length < 3) {
-            // Determine if this was called via slash command
-            const slashCmd = (message as any).commandName !== undefined;
-            const cmdPrefix = slashCmd ? '/' : '+';
+            // Get the appropriate command prefix
+            const cmdPrefix = getCommandPrefix(message);
             await message.reply(`Please specify which events to ${eventAction}. Example: \`${cmdPrefix}logs events ${eventAction} message-delete\``);
             await displayEventList(message);
             return;

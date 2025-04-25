@@ -4,7 +4,7 @@ import { moderationCommands } from './moderation';
 import { utilityCommands } from './utility';
 import { antipingCommands } from './antiping';
 import { loggingCommands } from './logging';
-import { Command } from '../utils';
+import { Command, getCommandPrefix } from '../utils';
 import { CommandCategory } from '@shared/schema';
 
 // Help command
@@ -18,12 +18,8 @@ const helpCommand: Command = {
   execute: async (message, args, client) => {
     const { commands } = client;
     
-    // Determine if this was called via slash command
-    // Check for a property that only exists on interaction objects
-    const isSlashCommand = message.commandName !== undefined;
-    
-    // Set the prefix based on invocation method
-    const prefix = isSlashCommand ? '/' : '+';
+    // Get the appropriate command prefix
+    const prefix = getCommandPrefix(message);
 
     // If no args, show all command categories
     if (!args.length) {

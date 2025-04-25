@@ -164,3 +164,10 @@ export function getUserPermissionLevel(message: Message): number {
   
   return 0; // Normal user
 }
+
+// Determine the command prefix based on how the command was invoked
+export function getCommandPrefix(message: Message): string {
+  // Check if the message has the commandName property that we add to mock messages for slash commands
+  const isSlashCommand = (message as any).commandName !== undefined;
+  return isSlashCommand ? '/' : '+';
+}
