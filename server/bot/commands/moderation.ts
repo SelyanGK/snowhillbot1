@@ -45,6 +45,55 @@ enum ModAction {
   SLOWMODE = 'SLOWMODE'
 }
 
+// Helper function to directly message a user about a moderation action
+async function dmUserAboutAction(
+  target: GuildMember,
+  action: ModAction,
+  serverName: string,
+  reason: string,
+  moderatorTag: string,
+  duration?: number
+): Promise<boolean> {
+  try {
+    const embed = new EmbedBuilder()
+      .setColor(0xFF0000)
+      .setTitle(`You've been ${action.toLowerCase()} from ${serverName}`)
+      .setDescription(`A moderator has taken action on your account.`)
+      .addFields(
+        { name: 'Action', value: action },
+        { name: 'Reason', value: reason || 'No reason provided' },
+        { name: 'Moderator', value: moderatorTag }
+      )
+      .setTimestamp();
+
+    if (duration) {
+      embed.addFields({ name: 'Duration', value: formatDuration(duration) });
+    }
+    
+    // Add appeal information based on action type
+    switch (action) {
+      case ModAction.BAN:
+        embed.addFields({ name: 'Appeal', value: 'If you believe this action was in error, you may contact the server administrators.' });
+        break;
+      case ModAction.TIMEOUT:
+        embed.addFields({ 
+          name: 'Timeout Ends', 
+          value: `<t:${Math.floor((Date.now() + duration!) / 1000)}:R>`,
+          inline: true 
+        });
+        break;
+    }
+
+    // Try to DM the user
+    await target.user.send({ embeds: [embed] });
+    return true;
+  } catch (error) {
+    // User might have DMs closed or bot blocked
+    console.error(`Failed to DM user ${target.user.tag} about ${action}:`, error);
+    return false;
+  }
+}
+
 // Helper for audit logs
 async function logModAction(
   message: Message, 
@@ -56,11 +105,47 @@ async function logModAction(
   const guild = message.guild;
   if (!guild) return;
   
-  // You could use a dedicated logging channel
-  const logChannelName = 'mod-logs';
-  const logChannel = guild.channels.cache.find(
-    (channel: any) => channel.name === logChannelName && channel.isTextBased()
-  );
+  // Get log channel from server settings if available
+  const settings = await storage.getServer(guild.id);
+  let logChannel: TextChannel | undefined;
+  
+  if (settings?.logSettings) {
+    try {
+      const logSettings = JSON.parse(settings.logSettings);
+      if (logSettings.enabled && logSettings.logChannelId) {
+        const channel = await guild.channels.fetch(logSettings.logChannelId);
+        if (channel && channel.isTextBased() && !channel.isThread()) {
+          logChannel = channel as TextChannel;
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing log settings:", e);
+    }
+  }
+  
+  // Fallback to finding a channel called mod-logs if no settings found
+  if (!logChannel) {
+    const fallbackChannel = guild.channels.cache.find(
+      (channel: any) => channel.name === 'mod-logs' && channel.isTextBased()
+    );
+    
+    if (fallbackChannel && fallbackChannel.isTextBased()) {
+      logChannel = fallbackChannel as TextChannel;
+    }
+  }
+  
+  // If target is a guild member, try to DM them about the action
+  let dmSuccess = false;
+  if (target instanceof GuildMember) {
+    dmSuccess = await dmUserAboutAction(
+      target,
+      action,
+      guild.name,
+      reason,
+      message.author.tag,
+      duration
+    );
+  }
   
   const embed = new EmbedBuilder()
     .setColor(0xFF0000)
@@ -74,7 +159,8 @@ async function logModAction(
   if (target instanceof GuildMember) {
     embed.addFields(
       { name: 'User', value: `${target.user.tag} (${target.id})` },
-      { name: 'Reason', value: reason || 'No reason provided' }
+      { name: 'Reason', value: reason || 'No reason provided' },
+      { name: 'DM Notification', value: dmSuccess ? '✅ User was notified via DM' : '❌ Could not DM user' }
     );
     
     if (duration) {
@@ -91,8 +177,8 @@ async function logModAction(
     }
   }
   
-  if (logChannel && typeof logChannel.isTextBased === 'function' && logChannel.isTextBased()) {
-    await (logChannel as TextChannel).send({ embeds: [embed] });
+  if (logChannel) {
+    await logChannel.send({ embeds: [embed] });
   }
 }
 
@@ -135,13 +221,30 @@ export const moderationCommands: Command[] = [
       const reason = args.slice(1).join(' ') || 'No reason provided';
 
       try {
+        // If the member is in the guild, try to send them a DM before banning
+        let dmSuccess = false;
+        if (member) {
+          dmSuccess = await dmUserAboutAction(
+            member,
+            ModAction.BAN,
+            message.guild.name,
+            reason,
+            message.author.tag
+          );
+        }
+
         // Ban the user
         await message.guild?.members.ban(user.id, { reason });
 
         // Record moderation action
         incrementModerationActions();
         
-        // Log activity
+        // Log to mod logs
+        if (message.guild && member) {
+          await logModAction(message, ModAction.BAN, member, reason);
+        }
+        
+        // Log activity for dashboard
         if (message.guild) {
           await storage.createActivityLog({
             serverId: message.guild.id,
@@ -158,7 +261,8 @@ export const moderationCommands: Command[] = [
           .setDescription(`${user.tag} has been banned from the server.`)
           .addFields(
             { name: 'Reason', value: reason },
-            { name: 'Moderator', value: message.author.tag }
+            { name: 'Moderator', value: message.author.tag },
+            { name: 'DM Notification', value: dmSuccess ? '✅ User was notified via DM' : '❌ Could not DM user' }
           )
           .setTimestamp();
 
@@ -209,13 +313,27 @@ export const moderationCommands: Command[] = [
       const reason = args.slice(1).join(' ') || 'No reason provided';
 
       try {
+        // Try to send a DM before kicking
+        const dmSuccess = await dmUserAboutAction(
+          member,
+          ModAction.KICK,
+          message.guild.name,
+          reason,
+          message.author.tag
+        );
+
         // Kick the user
         await member.kick(reason);
 
         // Record moderation action
         incrementModerationActions();
         
-        // Log activity
+        // Log to mod logs
+        if (message.guild) {
+          await logModAction(message, ModAction.KICK, member, reason);
+        }
+        
+        // Log activity for dashboard
         if (message.guild) {
           await storage.createActivityLog({
             serverId: message.guild.id,
@@ -232,7 +350,8 @@ export const moderationCommands: Command[] = [
           .setDescription(`${user.tag} has been kicked from the server.`)
           .addFields(
             { name: 'Reason', value: reason },
-            { name: 'Moderator', value: message.author.tag }
+            { name: 'Moderator', value: message.author.tag },
+            { name: 'DM Notification', value: dmSuccess ? '✅ User was notified via DM' : '❌ Could not DM user' }
           )
           .setTimestamp();
 
@@ -248,7 +367,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'timeout',
     description: 'Temporarily prevents a user from sending messages and joining voice channels',
-    usage: '!timeout [@user] [duration in minutes] [reason]',
+    usage: '!timeout [@user] [duration (optional)] [reason]',
     aliases: ['mute'],
     category: CommandCategory.MODERATION,
     cooldown: 3,
@@ -280,26 +399,61 @@ export const moderationCommands: Command[] = [
         return message.reply('You cannot timeout this user as they have higher or equal roles to you.');
       }
 
-      // Parse duration
-      const duration = parseInt(args[1]);
-      if (isNaN(duration) || duration <= 0) {
-        return message.reply('Please provide a valid duration in minutes.');
+      // Preset timeout durations in minutes (starting with 60 minutes as default)
+      const timeoutPresets = {
+        '1': 60, // 1 hour
+        '2': 24 * 60, // 1 day
+        '3': 3 * 24 * 60, // 3 days
+        '4': 7 * 24 * 60, // 7 days
+        '5': 14 * 24 * 60, // 14 days
+        '6': 28 * 24 * 60, // 28 days (max)
+      };
+      
+      // Check if the next argument is a preset number or a valid duration
+      let timeoutDuration = 60 * 60 * 1000; // Default: 1 hour in ms
+      let reasonStartIndex = 1;
+      
+      if (args.length > 1) {
+        // Check if it's a preset
+        if (timeoutPresets[args[1]]) {
+          timeoutDuration = timeoutPresets[args[1]] * 60 * 1000;
+          reasonStartIndex = 2;
+        } else {
+          // Otherwise try to parse a custom duration
+          const duration = parseInt(args[1]);
+          if (!isNaN(duration) && duration > 0) {
+            timeoutDuration = Math.min(duration * 60 * 1000, 28 * 24 * 60 * 60 * 1000);
+            reasonStartIndex = 2;
+          }
+        }
       }
 
-      // Cap duration at 28 days (Discord limit)
-      const timeoutDuration = Math.min(duration * 60 * 1000, 28 * 24 * 60 * 60 * 1000);
-
       // Extract reason
-      const reason = args.slice(2).join(' ') || 'No reason provided';
+      const reason = args.slice(reasonStartIndex).join(' ') || 'No reason provided';
 
       try {
+        // Try to send DM before applying timeout
+        const dmSuccess = await dmUserAboutAction(
+          member,
+          ModAction.TIMEOUT,
+          message.guild.name,
+          reason,
+          message.author.tag,
+          timeoutDuration
+        );
+        
         // Apply timeout
         await member.timeout(timeoutDuration, reason);
 
         // Record moderation action
         incrementModerationActions();
         
-        // Log activity
+        // Log to mod logs
+        if (message.guild) {
+          await logModAction(message, ModAction.TIMEOUT, member, reason, timeoutDuration);
+        }
+        
+        // Log activity for dashboard
         if (message.guild) {
           await storage.createActivityLog({
             serverId: message.guild.id,
@@ -309,14 +463,19 @@ export const moderationCommands: Command[] = [
           });
         }
 
+        // Format the duration for display
+        const durationText = formatDuration(timeoutDuration);
+
         // Send success message
         const embed = new EmbedBuilder()
           .setColor(0xED4245)
           .setTitle('User Timed Out')
-          .setDescription(`${user.tag} has been timed out for ${duration} minute(s).`)
+          .setDescription(`${user.tag} has been timed out for ${durationText}.`)
           .addFields(
             { name: 'Reason', value: reason },
-            { name: 'Moderator', value: message.author.tag }
+            { name: 'Moderator', value: message.author.tag },
+            { name: 'DM Notification', value: dmSuccess ? '✅ User was notified via DM' : '❌ Could not DM user' },
+            { name: 'Timeout Ends', value: `<t:${Math.floor((Date.now() + timeoutDuration) / 1000)}:R>` }
           )
           .setTimestamp();
 
