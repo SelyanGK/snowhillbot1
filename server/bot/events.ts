@@ -189,11 +189,15 @@ async function handlePossiblePingAbuse(message: Message): Promise<void> {
   // Check if user has Manage Messages permission (auto bypass)
   if (message.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) return;
   
-  // Check if user has bypass role if configured
-  if (server.antiPingBypassRole && message.member.roles.cache.has(server.antiPingBypassRole)) return;
+  // Check if user has a bypass role
+  if (Array.isArray(server.antiPingBypassRoles) && server.antiPingBypassRoles.length > 0) {
+    const memberRoles = message.member.roles.cache.map(r => r.id);
+    const hasBypassRole = server.antiPingBypassRoles.some(roleId => memberRoles.includes(roleId));
+    if (hasBypassRole) return;
+  }
   
   // Check if user is in excluded roles
-  if (server.antiPingExcludedRoles && server.antiPingExcludedRoles.length > 0) {
+  if (Array.isArray(server.antiPingExcludedRoles) && server.antiPingExcludedRoles.length > 0) {
     const memberRoles = message.member.roles.cache.map(r => r.id);
     const isExcluded = server.antiPingExcludedRoles.some(roleId => memberRoles.includes(roleId));
     if (isExcluded) return;
@@ -207,31 +211,41 @@ async function handlePossiblePingAbuse(message: Message): Promise<void> {
     return;
   }
   
-  // Count mentions in the message
-  const userMentions = message.mentions.users.size;
-  const roleMentions = message.mentions.roles.size;
-  const mentionCount = userMentions + roleMentions;
+  // Get the server's protected roles
+  const protectedRoles = Array.isArray(server.antiPingProtectedRoles) ? 
+    server.antiPingProtectedRoles : [];
   
-  // Skip if no mentions or below threshold
-  if (mentionCount < 3) return;
-  
-  // Check if protected role is being pinged
+  // Check for any ping to a protected role - even a single ping is punished
   let hasProtectedRolePing = false;
-  if (server.antiPingProtectedRole) {
-    hasProtectedRolePing = message.mentions.roles.has(server.antiPingProtectedRole);
+  if (protectedRoles.length > 0 && message.mentions.roles.size > 0) {
+    hasProtectedRolePing = message.mentions.roles.some(role => 
+      protectedRoles.includes(role.id)
+    );
   }
   
-  // Check if users with protected role were pinged
+  // Check if users with protected roles were pinged
   let hasProtectedUserPing = false;
-  if (server.antiPingProtectedRole) {
+  if (protectedRoles.length > 0 && message.mentions.users.size > 0) {
     hasProtectedUserPing = message.mentions.users.some(user => {
       const member = message.guild?.members.cache.get(user.id);
-      return member && member.roles.cache.has(server.antiPingProtectedRole!);
+      if (!member) return false;
+      
+      // Check if user has any protected role
+      return protectedRoles.some(roleId => member.roles.cache.has(roleId));
     });
   }
   
-  // If protected roles/users are pinged or there are too many mentions, take action
-  if (hasProtectedRolePing || hasProtectedUserPing || mentionCount >= 6) {
+  // Count total mentions for excessive ping detection
+  const mentionCount = message.mentions.users.size + message.mentions.roles.size;
+  const isExcessivePinging = mentionCount >= 6;
+  
+  // Take action if:
+  // 1. ANY protected role is pinged (even once)
+  // 2. ANY user with a protected role is pinged (even once)
+  // 3. There are excessive mentions (6 or more) in a single message
+  if (hasProtectedRolePing || hasProtectedUserPing || isExcessivePinging) {
+    console.log(`Antiping triggered: protectedRole=${hasProtectedRolePing}, protectedUser=${hasProtectedUserPing}, excessive=${isExcessivePinging}`);
+    
     // Delete the message
     try {
       await message.delete();
@@ -260,7 +274,7 @@ async function applyEscalatingTimeout(message: Message, violationCount: number):
   if (!message.guild || !message.member) return;
   
   const user = message.author;
-  const reason = 'Mass ping / mention abuse detected';
+  const reason = 'Protected role ping violation';
   
   // Escalating timeout durations in minutes:
   // 1st offense: warning (no timeout)
@@ -283,15 +297,28 @@ async function applyEscalatingTimeout(message: Message, violationCount: number):
   try {
     if (violationCount === 1) {
       // First offense: just a warning
-      await message.channel.send(`${user}, please refrain from mass pinging users. This is a warning.`);
+      await message.channel.send(`${user}, please do not ping protected roles. This is a warning.`);
     } else if (durationMinutes > 0 && message.member.moderatable) {
       // Apply timeout with escalating duration
       const durationMs = durationMinutes * 60 * 1000;
       await message.member.timeout(durationMs, reason);
       await message.channel.send(
-        `${user} has been timed out for ${durationMinutes} minutes for mass pinging users. ` +
+        `${user} has been timed out for ${durationMinutes} minutes for pinging protected roles. ` +
         `This is offense #${violationCount}.`
       );
+      
+      // Try to DM the user about their punishment
+      try {
+        await user.send(
+          `You have been timed out in ${message.guild.name} for ${durationMinutes} minutes.\n` +
+          `Reason: Pinging protected roles\n` +
+          `This is your ${violationCount}${getNumberSuffix(violationCount)} offense.\n` +
+          `Further violations will result in longer timeouts.`
+        );
+      } catch {
+        // Unable to DM user, continue
+        console.log(`Could not DM ${user.tag} about their timeout`);
+      }
     }
     
     // Log moderation action
@@ -309,12 +336,26 @@ async function applyEscalatingTimeout(message: Message, violationCount: number):
   }
 }
 
+// Helper function to get the proper suffix for a number (1st, 2nd, 3rd, etc.)
+function getNumberSuffix(num: number): string {
+  if (num >= 11 && num <= 13) {
+    return 'th';
+  }
+  
+  switch (num % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
 // Apply ping abuse punishment
 async function applyPingPunishment(message: Message, punishment: string): Promise<void> {
   if (!message.guild || !message.member) return;
   
   const user = message.author;
-  const reason = 'Mass ping / mention abuse detected';
+  const reason = 'Protected role ping violation';
   
   try {
     // Delete the offending message if it hasn't been deleted already
@@ -327,28 +368,64 @@ async function applyPingPunishment(message: Message, punishment: string): Promis
     // Apply punishment based on server settings
     switch (punishment.toLowerCase()) {
       case 'warn':
-        await message.channel.send(`${user}, please refrain from mass pinging users. This is a warning.`);
+        await message.channel.send(`${user}, please do not ping protected roles. This is a warning.`);
         break;
         
       case 'timeout':
         // 5 minute timeout
         if (message.member.moderatable) {
           await message.member.timeout(5 * 60 * 1000, reason);
-          await message.channel.send(`${user} has been timed out for 5 minutes for mass pinging users.`);
+          await message.channel.send(`${user} has been timed out for 5 minutes for pinging protected roles.`);
+          
+          // Try to DM the user about their punishment
+          try {
+            await user.send(
+              `You have been timed out in ${message.guild.name} for 5 minutes.\n` +
+              `Reason: Pinging protected roles\n` +
+              `Please respect the server's ping restrictions.`
+            );
+          } catch {
+            // Unable to DM user, continue
+            console.log(`Could not DM ${user.tag} about their timeout`);
+          }
         }
         break;
         
       case 'kick':
         if (message.member.kickable) {
           await message.member.kick(reason);
-          await message.channel.send(`${user.tag} has been kicked for mass pinging users.`);
+          await message.channel.send(`${user.tag} has been kicked for pinging protected roles.`);
+          
+          // Try to DM the user about their punishment
+          try {
+            await user.send(
+              `You have been kicked from ${message.guild.name}.\n` +
+              `Reason: Pinging protected roles\n` +
+              `Please respect the server's ping restrictions if you rejoin.`
+            );
+          } catch {
+            // Unable to DM user, continue
+            console.log(`Could not DM ${user.tag} about their kick`);
+          }
         }
         break;
         
       case 'ban':
         if (message.member.bannable) {
+          // Try to DM the user before banning them
+          try {
+            await user.send(
+              `You have been banned from ${message.guild.name}.\n` +
+              `Reason: Pinging protected roles\n` +
+              `This action cannot be appealed.`
+            );
+          } catch {
+            // Unable to DM user, continue
+            console.log(`Could not DM ${user.tag} about their ban`);
+          }
+          
           await message.member.ban({ reason });
-          await message.channel.send(`${user.tag} has been banned for mass pinging users.`);
+          await message.channel.send(`${user.tag} has been banned for pinging protected roles.`);
         }
         break;
         
