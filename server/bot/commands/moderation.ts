@@ -196,7 +196,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'ban',
     description: 'Bans a user from the server with optional duration',
-    usage: '+ban <@user> [duration] [reason]',
+    usage: '+ban [@user] [duration] [reason]',
     category: CommandCategory.MODERATION,
     cooldown: 3,
     requiredPermissions: [PermissionsBitField.Flags.BanMembers],
@@ -343,7 +343,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'kick',
     description: 'Kicks a user from the server',
-    usage: '+kick <@user> [reason]',
+    usage: '+kick [@user] [reason]',
     category: CommandCategory.MODERATION,
     cooldown: 3,
     requiredPermissions: [PermissionsBitField.Flags.KickMembers],
@@ -432,7 +432,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'timeout',
     description: 'Temporarily prevents a user from sending messages and joining voice channels',
-    usage: '+timeout <@user> [duration (optional)] [reason]',
+    usage: '+timeout [@user] [duration] [reason]',
     aliases: ['mute'],
     category: CommandCategory.MODERATION,
     cooldown: 3,
@@ -557,7 +557,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'untimeout',
     description: 'Removes a timeout from a user',
-    usage: '+untimeout <@user> [reason]',
+    usage: '+untimeout [@user] [reason]',
     aliases: ['unmute'],
     category: CommandCategory.MODERATION,
     cooldown: 3,
@@ -628,7 +628,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'clear',
     description: 'Deletes a specified number of messages from the channel',
-    usage: '+clear <amount> [optional: @user]',
+    usage: '+clear [amount] [@user]',
     aliases: ['purge', 'prune'],
     category: CommandCategory.MODERATION,
     cooldown: 5,
@@ -720,7 +720,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'warn',
     description: 'Issues a warning to a user',
-    usage: '+warn <@user> <reason>',
+    usage: '+warn [@user] [reason]',
     category: CommandCategory.MODERATION,
     cooldown: 3,
     requiredPermissions: [PermissionsBitField.Flags.ModerateMembers],
@@ -797,7 +797,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'lock',
     description: 'Locks a channel, preventing users from sending messages',
-    usage: '+lock [optional: reason]',
+    usage: '+lock [reason]',
     category: CommandCategory.MODERATION,
     cooldown: 5,
     requiredPermissions: [PermissionsBitField.Flags.ManageChannels],
@@ -860,7 +860,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'unlock',
     description: 'Unlocks a channel, allowing users to send messages again',
-    usage: '+unlock [optional: reason]',
+    usage: '+unlock [reason]',
     category: CommandCategory.MODERATION,
     cooldown: 5,
     requiredPermissions: [PermissionsBitField.Flags.ManageChannels],
@@ -923,7 +923,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'slowmode',
     description: 'Sets the slowmode cooldown in the current channel',
-    usage: '+slowmode <seconds>',
+    usage: '+slowmode [seconds]',
     category: CommandCategory.MODERATION,
     cooldown: 5,
     requiredPermissions: [PermissionsBitField.Flags.ManageChannels],
@@ -982,7 +982,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'nickname',
     description: 'Changes the nickname of a user',
-    usage: '+nickname <@user> [new nickname]',
+    usage: '+nickname [@user] [new nickname]',
     aliases: ['nick'],
     category: CommandCategory.MODERATION,
     cooldown: 5,
