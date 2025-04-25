@@ -227,7 +227,7 @@ export const moderationCommands: Command[] = [
           dmSuccess = await dmUserAboutAction(
             member,
             ModAction.BAN,
-            message.guild.name,
+            message.guild?.name || 'Server',
             reason,
             message.author.tag
           );
@@ -317,7 +317,7 @@ export const moderationCommands: Command[] = [
         const dmSuccess = await dmUserAboutAction(
           member,
           ModAction.KICK,
-          message.guild.name,
+          message.guild?.name || 'Server',
           reason,
           message.author.tag
         );
@@ -414,9 +414,10 @@ export const moderationCommands: Command[] = [
       let reasonStartIndex = 1;
       
       if (args.length > 1) {
-        // Check if it's a preset
-        if (timeoutPresets[args[1]]) {
-          timeoutDuration = timeoutPresets[args[1]] * 60 * 1000;
+        // Check if it's a preset (safely check if the key exists in the object)
+        const presetKey = args[1];
+        if (presetKey in timeoutPresets && timeoutPresets.hasOwnProperty(presetKey)) {
+          timeoutDuration = timeoutPresets[presetKey as keyof typeof timeoutPresets] * 60 * 1000;
           reasonStartIndex = 2;
         } else {
           // Otherwise try to parse a custom duration
@@ -436,7 +437,7 @@ export const moderationCommands: Command[] = [
         const dmSuccess = await dmUserAboutAction(
           member,
           ModAction.TIMEOUT,
-          message.guild.name,
+          message.guild?.name || 'Server',
           reason,
           message.author.tag,
           timeoutDuration
