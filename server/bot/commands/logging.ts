@@ -66,10 +66,16 @@ function getEventNameMap(): Record<string, LogEvent> {
 function displayEventList(message: Message) {
   const eventMap = getEventNameMap();
   
+  // Determine if this was called via slash command
+  const isSlashCommand = (message as any).commandName !== undefined;
+  
+  // Set the prefix based on invocation method
+  const prefix = isSlashCommand ? '/' : '+';
+  
   const embed = new EmbedBuilder()
     .setTitle("Available Log Event Types")
     .setColor(Colors.Blue)
-    .setDescription("Use these event names with the `+logs events add/remove` commands")
+    .setDescription(`Use these event names with the \`${prefix}logs events add/remove\` commands`)
     .addFields(
       { name: "👤 Member Events", value: "`member-join`, `member-leave`, `nickname-change`", inline: false },
       { name: "💬 Message Events", value: "`message-delete`, `message-edit`", inline: false },
@@ -77,7 +83,7 @@ function displayEventList(message: Message) {
       { name: "🛡️ Moderation Events", value: "`mod-action`", inline: false },
       { name: "Special", value: "`all` - Adds or removes all events", inline: false }
     )
-    .setFooter({ text: "Example: +logs events add message-delete" });
+    .setFooter({ text: `Example: ${prefix}logs events add message-delete` });
     
   message.channel.send({ embeds: [embed] });
 }
@@ -114,7 +120,10 @@ export const loggingCommands: Command[] = [
         case 'enable':
           // Check if a channel was specified
           if (args.length < 2) {
-            await message.reply("You need to specify a channel. Usage: `+logs enable #channel`");
+            // Determine if this was called via slash command
+            const isSlashCommand = (message as any).commandName !== undefined;
+            const prefix = isSlashCommand ? '/' : '+';
+            await message.reply(`You need to specify a channel. Usage: \`${prefix}logs enable #channel\``);
             return;
           }
           
@@ -171,7 +180,10 @@ export const loggingCommands: Command[] = [
           }
           
           if (args.length < 3) {
-            await message.reply(`Please specify which events to ${eventAction}. Example: \`+logs events ${eventAction} message-delete\``);
+            // Determine if this was called via slash command
+            const slashCmd = (message as any).commandName !== undefined;
+            const cmdPrefix = slashCmd ? '/' : '+';
+            await message.reply(`Please specify which events to ${eventAction}. Example: \`${cmdPrefix}logs events ${eventAction} message-delete\``);
             await displayEventList(message);
             return;
           }

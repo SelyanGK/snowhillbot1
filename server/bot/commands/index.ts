@@ -75,8 +75,8 @@ const helpCommand: Command = {
       return message.reply(`Command \`${commandName}\` not found. Use \`${prefix}help\` to see all commands.`);
     }
 
-    // Replace the ! prefix with the current prefix in usage examples
-    const usage = command.usage ? command.usage.replace(/^!/, prefix) : `${prefix}${command.name}`;
+    // Replace the prefix in usage examples with the appropriate one based on invocation method
+    const usage = command.usage ? command.usage.replace(/^[!+]/, prefix) : `${prefix}${command.name}`;
     
     const embed = {
       color: 0x5865F2,
