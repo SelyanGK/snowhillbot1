@@ -73,7 +73,19 @@ export async function deploySlashCommands(clientId: string, token: string) {
         case CommandCategory.MODERATION:
           if (cmd.name === 'ban' || cmd.name === 'kick' || cmd.name === 'timeout') {
             // Add user option if not already added
-            if (!builder.options.some(opt => opt.name === 'user')) {
+            let hasUserOption = false;
+            let hasDurationOption = false;
+            let hasReasonOption = false;
+            
+            // Check for existing options
+            builder.options.forEach(opt => {
+              if ((opt as any).name === 'user') hasUserOption = true;
+              if ((opt as any).name === 'duration') hasDurationOption = true;
+              if ((opt as any).name === 'reason') hasReasonOption = true;
+            });
+            
+            // Add user option if not already added
+            if (!hasUserOption) {
               builder.addUserOption(option => 
                 option.setName('user')
                   .setDescription('The user to perform this action on')
@@ -81,14 +93,14 @@ export async function deploySlashCommands(clientId: string, token: string) {
             }
             
             // Add duration option for these commands
-            if (!builder.options.some(opt => opt.name === 'duration')) {
+            if (!hasDurationOption) {
               builder.addStringOption(option => 
                 option.setName('duration')
                   .setDescription('The duration (e.g. 1h, 1d, 7d)'));
             }
             
-            // Add reason option if not already added  
-            if (!builder.options.some(opt => opt.name === 'reason')) {
+            // Add reason option if not already added
+            if (!hasReasonOption) {
               builder.addStringOption(option => 
                 option.setName('reason')
                   .setDescription('The reason for this action'));
@@ -116,29 +128,48 @@ export async function deploySlashCommands(clientId: string, token: string) {
         
         case CommandCategory.GIVEAWAY:
           if (cmd.name === 'gcreate' || cmd.name === 'gcreategiveaway') {
-            // Skip adding options if they already exist from usage parsing
-            if (!builder.options.some(opt => opt.name === 'channel')) {
+            // Check for existing options
+            let hasChannelOption = false;
+            let hasDurationOption = false;
+            let hasPrizeOption = false;
+            let hasWinnersOption = false;
+            let hasRequiredRoleOption = false;
+            
+            // Check for existing options
+            builder.options.forEach(opt => {
+              if ((opt as any).name === 'channel' || (opt as any).name === 'gchannel') hasChannelOption = true;
+              if ((opt as any).name === 'duration' || (opt as any).name === 'gduration') hasDurationOption = true;
+              if ((opt as any).name === 'prize') hasPrizeOption = true;
+              if ((opt as any).name === 'winners') hasWinnersOption = true;
+              if ((opt as any).name === 'required-role') hasRequiredRoleOption = true;
+            });
+            
+            // Add channel option if not already added
+            if (!hasChannelOption) {
               builder.addChannelOption(option =>
                 option.setName('gchannel')
                   .setDescription('The channel to post the giveaway in')
                   .setRequired(true));
             }
                 
-            if (!builder.options.some(opt => opt.name === 'duration')) {
+            // Add duration option if not already added
+            if (!hasDurationOption) {
               builder.addStringOption(option =>
                 option.setName('gduration')
                   .setDescription('The duration of the giveaway (e.g. 1h, 1d, 1w)')
                   .setRequired(true));
             }
                 
-            if (!builder.options.some(opt => opt.name === 'prize')) {
+            // Add prize option if not already added
+            if (!hasPrizeOption) {
               builder.addStringOption(option =>
                 option.setName('prize')
                   .setDescription('The prize for the giveaway')
                   .setRequired(true));
             }
                 
-            if (!builder.options.some(opt => opt.name === 'winners')) {
+            // Add winners option if not already added
+            if (!hasWinnersOption) {
               builder.addIntegerOption(option =>
                 option.setName('winners')
                   .setDescription('The number of winners')
@@ -147,7 +178,8 @@ export async function deploySlashCommands(clientId: string, token: string) {
                   .setMaxValue(10));
             }
                 
-            if (!builder.options.some(opt => opt.name === 'required-role')) {
+            // Add required-role option if not already added
+            if (!hasRequiredRoleOption) {
               builder.addRoleOption(option =>
                 option.setName('required-role')
                   .setDescription('Role required to enter the giveaway')
@@ -156,7 +188,16 @@ export async function deploySlashCommands(clientId: string, token: string) {
           }
           
           if (cmd.name === 'gend') {
-            if (!builder.options.some(opt => opt.name === 'giveaway-id')) {
+            // Check for existing options
+            let hasGiveawayIdOption = false;
+            
+            // Check options
+            builder.options.forEach(opt => {
+              if ((opt as any).name === 'giveaway-id') hasGiveawayIdOption = true;
+            });
+            
+            // Add giveaway-id option if not already added
+            if (!hasGiveawayIdOption) {
               builder.addIntegerOption(option =>
                 option.setName('giveaway-id')
                   .setDescription('The ID of the giveaway to end')
@@ -165,14 +206,26 @@ export async function deploySlashCommands(clientId: string, token: string) {
           }
           
           if (cmd.name === 'greroll') {
-            if (!builder.options.some(opt => opt.name === 'giveaway-id')) {
+            // Check for existing options
+            let hasGiveawayIdOption = false;
+            let hasCountOption = false;
+            
+            // Check options
+            builder.options.forEach(opt => {
+              if ((opt as any).name === 'giveaway-id') hasGiveawayIdOption = true;
+              if ((opt as any).name === 'count') hasCountOption = true;
+            });
+            
+            // Add giveaway-id option if not already added
+            if (!hasGiveawayIdOption) {
               builder.addIntegerOption(option =>
                 option.setName('giveaway-id')
                   .setDescription('The ID of the giveaway to reroll')
                   .setRequired(true));
             }
                 
-            if (!builder.options.some(opt => opt.name === 'count')) {
+            // Add count option if not already added
+            if (!hasCountOption) {
               builder.addIntegerOption(option =>
                 option.setName('count')
                   .setDescription('Number of winners to reroll')

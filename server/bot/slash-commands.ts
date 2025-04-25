@@ -432,11 +432,61 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
       switch (command.name) {
         case 'gcreate':
         case 'gcreategiveaway':
-        case 'greroll':
-        case 'gend':
-          // Use the original text command implementation
-          await advancedImplementationNeeded();
+          // Handle giveaway creation
+          const gChannel = interaction.options.getChannel('gchannel');
+          const gDuration = interaction.options.getString('gduration');
+          const prize = interaction.options.getString('prize');
+          const winners = interaction.options.getInteger('winners') || 1;
+          const requiredRole = interaction.options.getRole('required-role');
+          
+          if (!gChannel || !gDuration || !prize) {
+            return await mockMessage.reply('Missing required fields: channel, duration and prize are all required!');
+          }
+          
+          const createArgs = [
+            gChannel.id,
+            gDuration,
+            prize
+          ];
+          
+          if (winners !== 1) {
+            createArgs.push(winners.toString());
+          }
+          
+          if (requiredRole) {
+            createArgs.push(requiredRole.id);
+          }
+          
+          await command.execute(mockMessage, createArgs, interaction.client);
           break;
+          
+        case 'gend':
+          // Handle giveaway ending
+          const endGiveawayId = interaction.options.getInteger('giveaway-id');
+          if (!endGiveawayId) {
+            return await mockMessage.reply('Please provide a giveaway ID!');
+          }
+          
+          await command.execute(mockMessage, [endGiveawayId.toString()], interaction.client);
+          break;
+          
+        case 'greroll':
+          // Handle giveaway reroll
+          const rerollGiveawayId = interaction.options.getInteger('giveaway-id');
+          const rerollCount = interaction.options.getInteger('count') || 1;
+          
+          if (!rerollGiveawayId) {
+            return await mockMessage.reply('Please provide a giveaway ID!');
+          }
+          
+          const rerollArgs = [rerollGiveawayId.toString()];
+          if (rerollCount !== 1) {
+            rerollArgs.push(rerollCount.toString());
+          }
+          
+          await command.execute(mockMessage, rerollArgs, interaction.client);
+          break;
+          
         default:
           await advancedImplementationNeeded();
       }
