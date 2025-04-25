@@ -10,7 +10,13 @@ import {
   type PingViolation,
   type InsertPingViolation,
   type User,
-  type InsertUser
+  type InsertUser,
+  type Giveaway,
+  type InsertGiveaway,
+  type GiveawayEntry,
+  type InsertGiveawayEntry,
+  type GiveawayWinner,
+  type InsertGiveawayWinner
 } from "@shared/schema";
 
 export interface IStorage {
@@ -43,6 +49,26 @@ export interface IStorage {
   // Ping violations methods
   getPingViolations(serverId: string, userId: string): Promise<PingViolation | undefined>;
   updatePingViolationCount(serverId: string, userId: string, count: number): Promise<PingViolation>;
+
+  // Giveaway methods
+  createGiveaway(giveaway: InsertGiveaway): Promise<Giveaway>;
+  getGiveaway(id: number): Promise<Giveaway | undefined>;
+  getGiveawayByMessageId(messageId: string): Promise<Giveaway | undefined>;
+  getActiveGiveaways(serverId: string): Promise<Giveaway[]>;
+  getAllGiveaways(serverId: string, limit?: number): Promise<Giveaway[]>;
+  updateGiveaway(id: number, hasEnded: boolean): Promise<Giveaway | undefined>;
+  deleteGiveaway(id: number): Promise<boolean>;
+  
+  // Giveaway entry methods
+  createGiveawayEntry(entry: InsertGiveawayEntry): Promise<GiveawayEntry>;
+  getGiveawayEntries(giveawayId: number): Promise<GiveawayEntry[]>;
+  getGiveawayEntry(giveawayId: number, userId: string): Promise<GiveawayEntry | undefined>;
+  deleteGiveawayEntry(giveawayId: number, userId: string): Promise<boolean>;
+  
+  // Giveaway winner methods
+  createGiveawayWinner(winner: InsertGiveawayWinner): Promise<GiveawayWinner>;
+  getGiveawayWinners(giveawayId: number): Promise<GiveawayWinner[]>;
+  updateGiveawayWinner(id: number, hasClaimed: boolean): Promise<GiveawayWinner | undefined>;
 }
 
 export class MemStorage implements IStorage {

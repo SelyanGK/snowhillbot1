@@ -955,7 +955,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'emojiinfo',
     description: 'Displays information about an emoji',
-    usage: '!emojiinfo [emoji]',
+    usage: '+emojiinfo [emoji]',
     aliases: ['emoji'],
     category: CommandCategory.UTILITY,
     cooldown: 5,
@@ -970,7 +970,7 @@ export const utilityCommands: Command[] = [
       const match = args[0]?.match(emojiRegex);
       
       if (!match) {
-        return message.reply('Please provide a custom server emoji. Example: `!emojiinfo 😀` or `!emojiinfo :custom_emoji:`');
+        return message.reply('Please provide a custom server emoji. Example: `+emojiinfo 😀` or `+emojiinfo :custom_emoji:`');
       }
       
       // Extract emoji info
@@ -1028,7 +1028,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'calculate',
     description: 'Performs a mathematical calculation',
-    usage: '!calculate [expression]',
+    usage: '+calculate [expression]',
     aliases: ['calc', 'math'],
     category: CommandCategory.UTILITY,
     cooldown: 3,
@@ -1138,7 +1138,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'afk',
     description: 'Sets your AFK status with an optional reason',
-    usage: '!afk [reason]',
+    usage: '+afk [reason]',
     category: CommandCategory.UTILITY,
     cooldown: 10,
     requiredPermissions: [],
@@ -1193,7 +1193,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'banner',
     description: 'Shows the server\'s banner or a user\'s banner',
-    usage: '!banner [optional: user]',
+    usage: '+banner [optional: user]',
     category: CommandCategory.UTILITY,
     cooldown: 5,
     requiredPermissions: [],

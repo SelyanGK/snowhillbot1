@@ -7,7 +7,8 @@ export enum CommandCategory {
   FUN = "FUN",
   MODERATION = "MODERATION",
   UTILITY = "UTILITY",
-  ANTIPING = "ANTIPING"
+  ANTIPING = "ANTIPING",
+  GIVEAWAY = "GIVEAWAY"
 }
 
 // User schema
@@ -114,3 +115,63 @@ export type InsertPingViolation = z.infer<typeof insertPingViolationSchema>;
 
 export type PingBlockedUser = typeof pingBlockedUsers.$inferSelect;
 export type InsertPingBlockedUser = z.infer<typeof insertPingBlockedUserSchema>;
+
+// Giveaway schema
+export const giveaways = pgTable("giveaways", {
+  id: serial("id").primaryKey(),
+  serverId: text("server_id").notNull(),
+  channelId: text("channel_id").notNull(),
+  messageId: text("message_id").notNull(),
+  prize: text("prize").notNull(),
+  winnerCount: integer("winner_count").notNull().default(1),
+  hostId: text("host_id").notNull(), // User ID of who started the giveaway
+  endTime: timestamp("end_time").notNull(), // When the giveaway ends
+  hasEnded: boolean("has_ended").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGiveawaySchema = createInsertSchema(giveaways).omit({
+  id: true,
+  hasEnded: true,
+  createdAt: true,
+});
+
+// Giveaway entries schema
+export const giveawayEntries = pgTable("giveaway_entries", {
+  id: serial("id").primaryKey(),
+  giveawayId: integer("giveaway_id").notNull(),
+  userId: text("user_id").notNull(),
+  username: text("username").notNull(), 
+  enteredAt: timestamp("entered_at").defaultNow().notNull(),
+});
+
+export const insertGiveawayEntrySchema = createInsertSchema(giveawayEntries).omit({
+  id: true,
+  enteredAt: true,
+});
+
+// Giveaway winners schema
+export const giveawayWinners = pgTable("giveaway_winners", {
+  id: serial("id").primaryKey(),
+  giveawayId: integer("giveaway_id").notNull(),
+  userId: text("user_id").notNull(),
+  username: text("username").notNull(),
+  selectedAt: timestamp("selected_at").defaultNow().notNull(),
+  hasClaimed: boolean("has_claimed").notNull().default(false),
+});
+
+export const insertGiveawayWinnerSchema = createInsertSchema(giveawayWinners).omit({
+  id: true,
+  selectedAt: true,
+  hasClaimed: true,
+});
+
+// Export giveaway types
+export type Giveaway = typeof giveaways.$inferSelect;
+export type InsertGiveaway = z.infer<typeof insertGiveawaySchema>;
+
+export type GiveawayEntry = typeof giveawayEntries.$inferSelect;
+export type InsertGiveawayEntry = z.infer<typeof insertGiveawayEntrySchema>;
+
+export type GiveawayWinner = typeof giveawayWinners.$inferSelect;
+export type InsertGiveawayWinner = z.infer<typeof insertGiveawayWinnerSchema>;
