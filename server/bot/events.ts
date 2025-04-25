@@ -207,7 +207,9 @@ async function handlePossiblePingAbuse(message: Message): Promise<void> {
   const isBlocked = await storage.getPingBlockedUser(message.guild.id, message.author.id);
   if (isBlocked) {
     await message.delete().catch(console.error);
-    await message.channel.send(`${message.author}, you are currently blocked from pinging users.`);
+    if (message.channel.type === ChannelType.GuildText) {
+      await message.channel.send(`${message.author}, you are currently blocked from pinging users.`);
+    }
     return;
   }
   
@@ -297,15 +299,19 @@ async function applyEscalatingTimeout(message: Message, violationCount: number):
   try {
     if (violationCount === 1) {
       // First offense: just a warning
-      await message.channel.send(`${user}, please do not ping protected roles. This is a warning.`);
+      if (message.channel.type === ChannelType.GuildText) {
+        await message.channel.send(`${user}, please do not ping protected roles. This is a warning.`);
+      }
     } else if (durationMinutes > 0 && message.member.moderatable) {
       // Apply timeout with escalating duration
       const durationMs = durationMinutes * 60 * 1000;
       await message.member.timeout(durationMs, reason);
-      await message.channel.send(
-        `${user} has been timed out for ${durationMinutes} minutes for pinging protected roles. ` +
-        `This is offense #${violationCount}.`
-      );
+      if (message.channel.type === ChannelType.GuildText) {
+        await message.channel.send(
+          `${user} has been timed out for ${durationMinutes} minutes for pinging protected roles. ` +
+          `This is offense #${violationCount}.`
+        );
+      }
       
       // Try to DM the user about their punishment
       try {
@@ -368,14 +374,18 @@ async function applyPingPunishment(message: Message, punishment: string): Promis
     // Apply punishment based on server settings
     switch (punishment.toLowerCase()) {
       case 'warn':
-        await message.channel.send(`${user}, please do not ping protected roles. This is a warning.`);
+        if (message.channel.type === ChannelType.GuildText) {
+          await message.channel.send(`${user}, please do not ping protected roles. This is a warning.`);
+        }
         break;
         
       case 'timeout':
         // 5 minute timeout
         if (message.member.moderatable) {
           await message.member.timeout(5 * 60 * 1000, reason);
-          await message.channel.send(`${user} has been timed out for 5 minutes for pinging protected roles.`);
+          if (message.channel.type === ChannelType.GuildText) {
+            await message.channel.send(`${user} has been timed out for 5 minutes for pinging protected roles.`);
+          }
           
           // Try to DM the user about their punishment
           try {
@@ -394,7 +404,9 @@ async function applyPingPunishment(message: Message, punishment: string): Promis
       case 'kick':
         if (message.member.kickable) {
           await message.member.kick(reason);
-          await message.channel.send(`${user.tag} has been kicked for pinging protected roles.`);
+          if (message.channel.type === ChannelType.GuildText) {
+            await message.channel.send(`${user.tag} has been kicked for pinging protected roles.`);
+          }
           
           // Try to DM the user about their punishment
           try {
@@ -425,7 +437,9 @@ async function applyPingPunishment(message: Message, punishment: string): Promis
           }
           
           await message.member.ban({ reason });
-          await message.channel.send(`${user.tag} has been banned for pinging protected roles.`);
+          if (message.channel.type === ChannelType.GuildText) {
+            await message.channel.send(`${user.tag} has been banned for pinging protected roles.`);
+          }
         }
         break;
         

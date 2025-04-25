@@ -606,7 +606,7 @@ export const funCommands: Command[] = [
   {
     name: 'quote',
     description: 'Shares an inspirational or funny quote',
-    usage: '!quote',
+    usage: '+quote',
     category: CommandCategory.FUN,
     cooldown: 5,
     requiredPermissions: [],
@@ -633,7 +633,7 @@ export const funCommands: Command[] = [
   {
     name: 'choose',
     description: 'Helps you choose between multiple options',
-    usage: '!choose [option1] | [option2] | [etc...]',
+    usage: '+choose [option1] | [option2] | [etc...]',
     aliases: ['pick', 'select'],
     category: CommandCategory.FUN,
     cooldown: 3,
@@ -661,7 +661,7 @@ export const funCommands: Command[] = [
   {
     name: 'reverse',
     description: 'Reverses the given text',
-    usage: '!reverse [text]',
+    usage: '+reverse [text]',
     category: CommandCategory.FUN,
     cooldown: 3,
     requiredPermissions: [],
@@ -689,7 +689,7 @@ export const funCommands: Command[] = [
   {
     name: 'trivia',
     description: 'Tests your knowledge with a random trivia question',
-    usage: '!trivia',
+    usage: '+trivia',
     category: CommandCategory.FUN,
     cooldown: 10,
     requiredPermissions: [],
@@ -795,7 +795,7 @@ export const funCommands: Command[] = [
   {
     name: 'hangman',
     description: 'Play a game of hangman',
-    usage: '!hangman',
+    usage: '+hangman',
     category: CommandCategory.FUN,
     cooldown: 30,
     requiredPermissions: [],
@@ -959,7 +959,7 @@ export const funCommands: Command[] = [
   {
     name: 'dicepic',
     description: 'Shows a picture of dice with the specified number',
-    usage: '!dicepic [1-6]',
+    usage: '+dicepic [1-6]',
     aliases: ['showdice'],
     category: CommandCategory.FUN,
     cooldown: 3,
