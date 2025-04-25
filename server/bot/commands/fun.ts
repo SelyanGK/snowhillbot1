@@ -1,4 +1,4 @@
-import { Command } from '../utils';
+import { Command, getCommandPrefix } from '../utils';
 import { CommandCategory } from '@shared/schema';
 import { EmbedBuilder, AttachmentBuilder } from 'discord.js';
 import axios from 'axios';
@@ -140,7 +140,7 @@ export const funCommands: Command[] = [
   {
     name: '8ball',
     description: 'Ask the magic 8-ball a question and receive your fortune',
-    usage: '!8ball [question]',
+    usage: '+8ball [question]', // getCommandPrefix will handle this dynamically
     category: CommandCategory.FUN,
     cooldown: 5,
     requiredPermissions: [],
@@ -191,7 +191,7 @@ export const funCommands: Command[] = [
   {
     name: 'joke',
     description: 'Tells a random joke to lighten the mood',
-    usage: '!joke [category]',
+    usage: '+joke [category]', // getCommandPrefix will handle this dynamically
     aliases: ['jokes', 'funny'],
     category: CommandCategory.FUN,
     cooldown: 5,
@@ -237,7 +237,7 @@ export const funCommands: Command[] = [
   {
     name: 'coinflip',
     description: 'Flips a coin and shows the result',
-    usage: '!coinflip',
+    usage: '+coinflip', // getCommandPrefix will handle this dynamically
     aliases: ['flip', 'coin'],
     category: CommandCategory.FUN,
     cooldown: 3,
@@ -258,7 +258,7 @@ export const funCommands: Command[] = [
   {
     name: 'roll',
     description: 'Rolls dice in DnD notation (e.g., 2d6)',
-    usage: '!roll [dice notation, default: 1d6]',
+    usage: '+roll [dice notation, default: 1d6]', // getCommandPrefix will handle this dynamically
     aliases: ['dice', 'diceroll'],
     category: CommandCategory.FUN,
     cooldown: 3,
