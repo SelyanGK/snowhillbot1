@@ -89,9 +89,29 @@ async function handleSlashCommand(interaction: ChatInputCommandInteraction) {
   }
   
   // Check permissions
-  const memberPermissions = interaction.member?.permissions;
   if (command.requiredPermissions && command.requiredPermissions.length > 0) {
-    if (!memberPermissions || !command.requiredPermissions.every(perm => memberPermissions.has(perm))) {
+    // Need to cast to GuildMemberRoleManager to access the permissions properly
+    const memberPermissions = interaction.member?.permissions;
+    
+    if (!memberPermissions) {
+      await interaction.reply({
+        content: `You don't have the required permissions to use this command.`,
+        ephemeral: true
+      });
+      return;
+    }
+    
+    // Check if the member has the required permissions
+    let hasPermissions = true;
+    if (typeof memberPermissions === 'string') {
+      // Handle string permissions (unlikely but possible)
+      hasPermissions = false;
+    } else {
+      // Normal permissions object
+      hasPermissions = command.requiredPermissions.every(perm => memberPermissions.has(perm));
+    }
+    
+    if (!hasPermissions) {
       await interaction.reply({
         content: `You don't have the required permissions to use this command.`,
         ephemeral: true
@@ -495,10 +515,55 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     case CommandCategory.UTILITY:
       switch (command.name) {
         case 'ping':
+          // Simple ping command, no args needed
+          await command.execute(mockMessage, [], interaction.client);
+          break;
+          
         case 'help':
+          // Help command with optional category parameter
+          const helpCategory = interaction.options.getString('category');
+          const helpArgs = helpCategory ? [helpCategory] : [];
+          await command.execute(mockMessage, helpArgs, interaction.client);
+          break;
+          
         case 'serverinfo':
+          // Server info command, no args needed
+          await command.execute(mockMessage, [], interaction.client);
+          break;
+          
+        case 'userinfo':
+          // User info command with optional user parameter
+          const userInfoTarget = interaction.options.getUser('user');
+          const userInfoArgs = userInfoTarget ? [userInfoTarget.id] : [];
+          await command.execute(mockMessage, userInfoArgs, interaction.client);
+          break;
+          
+        case 'avatar':
+          // Avatar command with optional user parameter
+          const avatarTarget = interaction.options.getUser('user');
+          const avatarArgs = avatarTarget ? [avatarTarget.id] : [];
+          await command.execute(mockMessage, avatarArgs, interaction.client);
+          break;
+          
+        case 'poll':
+          // Poll command with question and options
+          const question = interaction.options.getString('message');
+          const options = interaction.options.getString('options');
+          
+          if (!question) {
+            return await mockMessage.reply('Please provide a poll question!');
+          }
+          
+          const pollArgs = [question];
+          if (options) {
+            pollArgs.push(options);
+          }
+          
+          await command.execute(mockMessage, pollArgs, interaction.client);
+          break;
+          
         default:
-          // Use the original text command implementation for all utility commands
+          // For other utility commands
           await advancedImplementationNeeded();
       }
       break;
@@ -506,10 +571,46 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     case CommandCategory.FUN:
       switch (command.name) {
         case '8ball':
+          // 8ball command with question parameter
+          const question8ball = interaction.options.getString('question');
+          if (!question8ball) {
+            return await mockMessage.reply('Please ask a question!');
+          }
+          
+          await command.execute(mockMessage, [question8ball], interaction.client);
+          break;
+          
         case 'roll':
+          // Roll command with optional sides parameter
+          const sides = interaction.options.getInteger('amount');
+          const rollArgs = sides ? [sides.toString()] : [];
+          await command.execute(mockMessage, rollArgs, interaction.client);
+          break;
+          
         case 'coinflip':
+          // Coinflip command, no args needed
+          await command.execute(mockMessage, [], interaction.client);
+          break;
+          
+        case 'rps':
+          // Rock, paper, scissors command with choice parameter
+          const choice = interaction.options.getString('message');
+          const rpsArgs = choice ? [choice] : [];
+          await command.execute(mockMessage, rpsArgs, interaction.client);
+          break;
+          
+        case 'joke':
+          // Joke command, no args needed
+          await command.execute(mockMessage, [], interaction.client);
+          break;
+          
+        case 'fact':
+          // Fact command, no args needed
+          await command.execute(mockMessage, [], interaction.client);
+          break;
+          
         default:
-          // Use the original text command implementation for all fun commands
+          // For other fun commands
           await advancedImplementationNeeded();
       }
       break;
