@@ -127,6 +127,7 @@ export const giveaways = pgTable("giveaways", {
   hostId: text("host_id").notNull(), // User ID of who started the giveaway
   endTime: timestamp("end_time").notNull(), // When the giveaway ends
   hasEnded: boolean("has_ended").notNull().default(false),
+  requiredRoleId: text("required_role_id"), // Optional role requirement to enter
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -78,11 +78,17 @@ export class MemStorage implements IStorage {
   private commandCooldowns: CommandCooldown[];
   private pingBlockedUsers: PingBlockedUser[];
   private pingViolations: Map<string, PingViolation>; // Key format: serverId:userId
+  private giveaways: Map<number, Giveaway>;
+  private giveawayEntries: GiveawayEntry[];
+  private giveawayWinners: GiveawayWinner[];
   private userIdCounter: number;
   private activityLogIdCounter: number;
   private cooldownIdCounter: number;
   private pingBlockedUserIdCounter: number;
   private pingViolationIdCounter: number;
+  private giveawayIdCounter: number;
+  private giveawayEntryIdCounter: number;
+  private giveawayWinnerIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -91,11 +97,17 @@ export class MemStorage implements IStorage {
     this.commandCooldowns = [];
     this.pingBlockedUsers = [];
     this.pingViolations = new Map();
+    this.giveaways = new Map();
+    this.giveawayEntries = [];
+    this.giveawayWinners = [];
     this.userIdCounter = 1;
     this.activityLogIdCounter = 1;
     this.cooldownIdCounter = 1;
     this.pingBlockedUserIdCounter = 1;
     this.pingViolationIdCounter = 1;
+    this.giveawayIdCounter = 1;
+    this.giveawayEntryIdCounter = 1;
+    this.giveawayWinnerIdCounter = 1;
   }
 
   // User methods
@@ -254,6 +266,124 @@ export class MemStorage implements IStorage {
       this.pingViolations.set(key, newViolation);
       return newViolation;
     }
+  }
+  
+  // Giveaway methods
+  async createGiveaway(giveaway: InsertGiveaway): Promise<Giveaway> {
+    const id = this.giveawayIdCounter++;
+    const newGiveaway: Giveaway = {
+      ...giveaway,
+      id,
+      hasEnded: false,
+      createdAt: new Date()
+    };
+    this.giveaways.set(id, newGiveaway);
+    return newGiveaway;
+  }
+
+  async getGiveaway(id: number): Promise<Giveaway | undefined> {
+    return this.giveaways.get(id);
+  }
+
+  async getGiveawayByMessageId(messageId: string): Promise<Giveaway | undefined> {
+    return Array.from(this.giveaways.values()).find(
+      giveaway => giveaway.messageId === messageId
+    );
+  }
+
+  async getActiveGiveaways(serverId: string): Promise<Giveaway[]> {
+    return Array.from(this.giveaways.values())
+      .filter(giveaway => giveaway.serverId === serverId && !giveaway.hasEnded)
+      .sort((a, b) => a.endTime.getTime() - b.endTime.getTime());
+  }
+
+  async getAllGiveaways(serverId: string, limit = 10): Promise<Giveaway[]> {
+    return Array.from(this.giveaways.values())
+      .filter(giveaway => giveaway.serverId === serverId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+  }
+
+  async updateGiveaway(id: number, hasEnded: boolean): Promise<Giveaway | undefined> {
+    const giveaway = await this.getGiveaway(id);
+    if (!giveaway) return undefined;
+
+    const updatedGiveaway: Giveaway = {
+      ...giveaway,
+      hasEnded
+    };
+    
+    this.giveaways.set(id, updatedGiveaway);
+    return updatedGiveaway;
+  }
+
+  async deleteGiveaway(id: number): Promise<boolean> {
+    return this.giveaways.delete(id);
+  }
+  
+  // Giveaway entry methods
+  async createGiveawayEntry(entry: InsertGiveawayEntry): Promise<GiveawayEntry> {
+    const id = this.giveawayEntryIdCounter++;
+    const newEntry: GiveawayEntry = {
+      ...entry,
+      id,
+      enteredAt: new Date()
+    };
+    this.giveawayEntries.push(newEntry);
+    return newEntry;
+  }
+
+  async getGiveawayEntries(giveawayId: number): Promise<GiveawayEntry[]> {
+    return this.giveawayEntries
+      .filter(entry => entry.giveawayId === giveawayId)
+      .sort((a, b) => a.enteredAt.getTime() - b.enteredAt.getTime());
+  }
+
+  async getGiveawayEntry(giveawayId: number, userId: string): Promise<GiveawayEntry | undefined> {
+    return this.giveawayEntries.find(
+      entry => entry.giveawayId === giveawayId && entry.userId === userId
+    );
+  }
+
+  async deleteGiveawayEntry(giveawayId: number, userId: string): Promise<boolean> {
+    const initialLength = this.giveawayEntries.length;
+    this.giveawayEntries = this.giveawayEntries.filter(
+      entry => !(entry.giveawayId === giveawayId && entry.userId === userId)
+    );
+    return initialLength !== this.giveawayEntries.length;
+  }
+  
+  // Giveaway winner methods
+  async createGiveawayWinner(winner: InsertGiveawayWinner): Promise<GiveawayWinner> {
+    const id = this.giveawayWinnerIdCounter++;
+    const newWinner: GiveawayWinner = {
+      ...winner,
+      id,
+      selectedAt: new Date(),
+      hasClaimed: false
+    };
+    this.giveawayWinners.push(newWinner);
+    return newWinner;
+  }
+
+  async getGiveawayWinners(giveawayId: number): Promise<GiveawayWinner[]> {
+    return this.giveawayWinners
+      .filter(winner => winner.giveawayId === giveawayId)
+      .sort((a, b) => a.selectedAt.getTime() - b.selectedAt.getTime());
+  }
+
+  async updateGiveawayWinner(id: number, hasClaimed: boolean): Promise<GiveawayWinner | undefined> {
+    const winnerIndex = this.giveawayWinners.findIndex(winner => winner.id === id);
+    if (winnerIndex === -1) return undefined;
+
+    const winner = this.giveawayWinners[winnerIndex];
+    const updatedWinner: GiveawayWinner = {
+      ...winner,
+      hasClaimed
+    };
+    
+    this.giveawayWinners[winnerIndex] = updatedWinner;
+    return updatedWinner;
   }
 }
 

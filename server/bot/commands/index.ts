@@ -4,6 +4,7 @@ import { moderationCommands } from './moderation';
 import { utilityCommands } from './utility';
 import { antipingCommands } from './antiping';
 import { loggingCommands } from './logging';
+import { giveawayCommands } from './giveaway';
 import { Command, getCommandPrefix } from '../utils';
 import { CommandCategory } from '@shared/schema';
 
@@ -27,6 +28,7 @@ const helpCommand: Command = {
       const modCmds = commands.filter(cmd => cmd.category === CommandCategory.MODERATION);
       const utilityCmds = commands.filter(cmd => cmd.category === CommandCategory.UTILITY);
       const antipingCmds = commands.filter(cmd => cmd.category === CommandCategory.ANTIPING);
+      const giveawayCmds = commands.filter(cmd => cmd.category === CommandCategory.GIVEAWAY);
 
       const embed = {
         color: 0x5865F2,
@@ -51,6 +53,11 @@ const helpCommand: Command = {
           {
             name: '🔕 Anti-Ping Commands',
             value: antipingCmds.map(cmd => `\`${cmd.name}\``).join(', ') || 'No commands available',
+            inline: false
+          },
+          {
+            name: '🎉 Giveaway Commands',
+            value: giveawayCmds.map(cmd => `\`${cmd.name}\``).join(', ') || 'No commands available',
             inline: false
           }
         ],
@@ -112,6 +119,7 @@ export async function loadCommands(): Promise<Collection<string, Command>> {
     ...utilityCommands,
     ...antipingCommands,
     ...loggingCommands,
+    ...giveawayCommands,
     helpCommand // Add the help command
   ];
 
@@ -131,6 +139,7 @@ export function getAllCommands(): Command[] {
     ...utilityCommands,
     ...antipingCommands,
     ...loggingCommands,
+    ...giveawayCommands,
     helpCommand
   ];
 }
