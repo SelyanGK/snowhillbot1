@@ -1,4 +1,4 @@
-import { Client, Events, Message, GuildMember, Collection, ChannelType, User } from 'discord.js';
+import { Client, Events, Message, GuildMember, Collection, ChannelType, User, PermissionsBitField } from 'discord.js';
 import { getPrefix, incrementCommandsUsed, incrementModerationActions } from './index';
 import { storage } from '../storage';
 import { log } from '../vite';
@@ -177,23 +177,27 @@ export function setupEvents(client: Client): void {
 
 // Helper function to handle possible ping abuse
 async function handlePossiblePingAbuse(message: Message): Promise<void> {
-  if (!message.guild) return;
+  if (!message.guild || !message.member) return;
   
-  // Check if anti-ping is enabled for this server
+  // Skip messages from bots
+  if (message.author.bot) return;
+  
+  // Get server configuration
   const server = await storage.getServer(message.guild.id);
   if (!server || !server.antiPingEnabled) return;
+
+  // Check if user has Manage Messages permission (auto bypass)
+  if (message.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) return;
   
-  // Check if user is exempt from anti-ping checks
-  if (message.member) {
+  // Check if user has bypass role if configured
+  if (server.antiPingBypassRole && message.member.roles.cache.has(server.antiPingBypassRole)) return;
+  
+  // Check if user is in excluded roles
+  if (server.antiPingExcludedRoles && server.antiPingExcludedRoles.length > 0) {
     const memberRoles = message.member.roles.cache.map(r => r.id);
-    const isExempt = server.antiPingExcludedRoles.some(roleId => memberRoles.includes(roleId));
-    
-    if (isExempt) return;
+    const isExcluded = server.antiPingExcludedRoles.some(roleId => memberRoles.includes(roleId));
+    if (isExcluded) return;
   }
-  
-  // Check if the message has ping-blocked users
-  const mentionedUsers = message.mentions.users;
-  if (mentionedUsers.size === 0) return;
   
   // Check if user is ping-blocked
   const isBlocked = await storage.getPingBlockedUser(message.guild.id, message.author.id);
@@ -203,49 +207,51 @@ async function handlePossiblePingAbuse(message: Message): Promise<void> {
     return;
   }
   
-  // Check for mass pings (multiple users or roles in a short time period)
-  const userId = message.author.id;
-  const now = Date.now();
-  const timeWindow = 10000; // 10 seconds
+  // Count mentions in the message
+  const userMentions = message.mentions.users.size;
+  const roleMentions = message.mentions.roles.size;
+  const mentionCount = userMentions + roleMentions;
   
-  // Initialize or update ping tracking
-  if (!userPings.has(userId)) {
-    userPings.set(userId, {
-      count: 0,
-      lastPingTime: now,
-      targets: new Set<string>()
+  // Skip if no mentions or below threshold
+  if (mentionCount < 3) return;
+  
+  // Check if protected role is being pinged
+  let hasProtectedRolePing = false;
+  if (server.antiPingProtectedRole) {
+    hasProtectedRolePing = message.mentions.roles.has(server.antiPingProtectedRole);
+  }
+  
+  // Check if users with protected role were pinged
+  let hasProtectedUserPing = false;
+  if (server.antiPingProtectedRole) {
+    hasProtectedUserPing = message.mentions.users.some(user => {
+      const member = message.guild?.members.cache.get(user.id);
+      return member && member.roles.cache.has(server.antiPingProtectedRole!);
     });
   }
   
-  const userPingData = userPings.get(userId)!;
-  
-  // If the time window has passed, reset counters
-  if (now - userPingData.lastPingTime > timeWindow) {
-    userPingData.count = 0;
-    userPingData.targets.clear();
-  }
-  
-  // Count mentions
-  userPingData.count += mentionedUsers.size;
-  mentionedUsers.forEach(user => userPingData.targets.add(user.id));
-  
-  // Also count role mentions if any
-  userPingData.count += message.mentions.roles.size;
-  
-  // Update last ping time
-  userPingData.lastPingTime = now;
-  
-  // Define thresholds
-  const massUserPingThreshold = 5; // 5+ pings in time window
-  const uniqueUserPingThreshold = 3; // 3+ different users
-  
-  // Check if thresholds exceeded
-  if (userPingData.count >= massUserPingThreshold || userPingData.targets.size >= uniqueUserPingThreshold) {
-    // Apply punishment based on server settings
-    await applyPingPunishment(message, server.antiPingPunishment);
+  // If protected roles/users are pinged or there are too many mentions, take action
+  if (hasProtectedRolePing || hasProtectedUserPing || mentionCount >= 6) {
+    // Delete the message
+    try {
+      await message.delete();
+    } catch (error) {
+      console.error('Error deleting ping abuse message:', error);
+    }
     
-    // Reset counter after punishment
-    userPings.delete(userId);
+    // Get user's violation count
+    const violations = await storage.getPingViolations(message.guild.id, message.author.id);
+    const count = violations ? violations.count + 1 : 1;
+    
+    // Apply punishment based on server settings
+    if (server.antiPingPunishment === 'escalate') {
+      await applyEscalatingTimeout(message, count);
+    } else {
+      await applyPingPunishment(message, server.antiPingPunishment || 'warn');
+    }
+    
+    // Update violation count
+    await storage.updatePingViolationCount(message.guild.id, message.author.id, count);
   }
 }
 

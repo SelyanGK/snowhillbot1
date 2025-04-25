@@ -7,6 +7,8 @@ import {
   type InsertCommandCooldown,
   type PingBlockedUser,
   type InsertPingBlockedUser,
+  type PingViolation,
+  type InsertPingViolation,
   type User,
   type InsertUser
 } from "@shared/schema";
@@ -192,6 +194,40 @@ export class MemStorage implements IStorage {
       blockedUser => !(blockedUser.serverId === serverId && blockedUser.userId === userId)
     );
     return initialLength !== this.pingBlockedUsers.length;
+  }
+
+  // Ping violations methods
+  async getPingViolations(serverId: string, userId: string): Promise<PingViolation | undefined> {
+    const key = `${serverId}:${userId}`;
+    return this.pingViolations.get(key);
+  }
+
+  async updatePingViolationCount(serverId: string, userId: string, count: number): Promise<PingViolation> {
+    const key = `${serverId}:${userId}`;
+    const existingViolation = this.pingViolations.get(key);
+    
+    if (existingViolation) {
+      // Update existing violation
+      const updatedViolation: PingViolation = {
+        ...existingViolation,
+        count,
+        lastViolation: new Date()
+      };
+      this.pingViolations.set(key, updatedViolation);
+      return updatedViolation;
+    } else {
+      // Create new violation
+      const id = this.pingViolationIdCounter++;
+      const newViolation: PingViolation = {
+        id,
+        serverId,
+        userId,
+        count,
+        lastViolation: new Date()
+      };
+      this.pingViolations.set(key, newViolation);
+      return newViolation;
+    }
   }
 }
 
