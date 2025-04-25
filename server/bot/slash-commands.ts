@@ -313,6 +313,28 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
             }
             const args = ['protect', role.id];
             await command.execute(mockMessage, args, interaction.client);
+          } else if (subcommand === 'add-excluded-role') {
+            // Handle add-excluded-role subcommand
+            const role = interaction.options.getRole('role');
+            if (!role) {
+              await mockMessage.reply('Please specify a role.');
+              return;
+            }
+            const args = ['exclude', role.id];
+            await command.execute(mockMessage, args, interaction.client);
+          } else if (subcommand === 'remove-excluded-role') {
+            // Handle remove-excluded-role subcommand
+            const role = interaction.options.getRole('role');
+            if (!role) {
+              await mockMessage.reply('Please specify a role.');
+              return;
+            }
+            const args = ['include', role.id];
+            await command.execute(mockMessage, args, interaction.client);
+          } else if (subcommand === 'settings') {
+            // Handle settings subcommand - no args needed for settings display
+            const args: string[] = [];
+            await command.execute(mockMessage, args, interaction.client);
           } else {
             // Default case for unknown subcommands
             await advancedImplementationNeeded();
