@@ -259,21 +259,80 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
   switch (command.category) {
     case CommandCategory.MODERATION:
       switch (command.name) {
-        case 'kick':
         case 'ban':
+          // Handle ban command
+          const banUser = interaction.options.getUser('user');
+          if (!banUser) {
+            await mockMessage.reply('Please specify a user to ban.');
+            return;
+          }
+          
+          const banReason = interaction.options.getString('reason') || 'No reason provided';
+          const banArgs = [banUser.toString(), ...banReason.split(' ')];
+          await command.execute(mockMessage, banArgs, interaction.client);
+          break;
+          
+        case 'kick':
+          // Handle kick command
+          const kickUser = interaction.options.getUser('user');
+          if (!kickUser) {
+            await mockMessage.reply('Please specify a user to kick.');
+            return;
+          }
+          
+          const kickReason = interaction.options.getString('reason') || 'No reason provided';
+          const kickArgs = [kickUser.toString(), ...kickReason.split(' ')];
+          await command.execute(mockMessage, kickArgs, interaction.client);
+          break;
+          
         case 'timeout':
         case 'mute':
+          // Handle timeout/mute command
+          const muteUser = interaction.options.getUser('user');
+          if (!muteUser) {
+            await mockMessage.reply('Please specify a user to timeout/mute.');
+            return;
+          }
+          
+          const duration = interaction.options.getString('duration') || '1h';
+          const muteReason = interaction.options.getString('reason') || 'No reason provided';
+          const muteArgs = [muteUser.toString(), duration, ...muteReason.split(' ')];
+          await command.execute(mockMessage, muteArgs, interaction.client);
+          break;
+          
         case 'untimeout':
         case 'unmute':
-          // Use the original text command implementation
-          await advancedImplementationNeeded();
+          // Handle untimeout/unmute command
+          const unmuteUser = interaction.options.getUser('user');
+          if (!unmuteUser) {
+            await mockMessage.reply('Please specify a user to remove timeout/unmute.');
+            return;
+          }
+          
+          const unmuteArgs = [unmuteUser.toString()];
+          await command.execute(mockMessage, unmuteArgs, interaction.client);
           break;
           
         case 'clear':
         case 'purge':
+          // Handle clear/purge command
+          const amount = interaction.options.getInteger('amount');
+          if (!amount) {
+            await mockMessage.reply('Please specify the number of messages to delete.');
+            return;
+          }
+          
+          const clearArgs = [amount.toString()];
+          await command.execute(mockMessage, clearArgs, interaction.client);
+          break;
+          
         case 'slowmode':
-          // Use the original text command implementation
-          await advancedImplementationNeeded();
+          // Handle slowmode command
+          const channel = interaction.options.getChannel('channel') || interaction.channel;
+          const seconds = interaction.options.getInteger('amount') || 0;
+          
+          const slowmodeArgs = [channel.toString(), seconds.toString()];
+          await command.execute(mockMessage, slowmodeArgs, interaction.client);
           break;
           
         default:
