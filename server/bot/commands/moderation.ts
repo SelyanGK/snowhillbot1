@@ -1,10 +1,101 @@
 import { Command } from '../utils';
 import { CommandCategory } from '@shared/schema';
-import { PermissionsBitField, EmbedBuilder, GuildMember } from 'discord.js';
+import { PermissionsBitField, EmbedBuilder, GuildMember, Message, TextChannel } from 'discord.js';
 import { incrementModerationActions } from '../index';
 import { storage } from '../../storage';
 
 // Moderation commands collection
+// Warning system for users
+const MAX_WARNINGS = 5; // Maximum number of warnings before auto-banning
+
+// Timeout durations (in ms) for different number of warnings
+const WARNING_TIMEOUT_DURATIONS = {
+  1: 5 * 60 * 1000, // 5 minutes
+  2: 15 * 60 * 1000, // 15 minutes
+  3: 60 * 60 * 1000, // 1 hour
+  4: 24 * 60 * 60 * 1000, // 24 hours
+  5: 7 * 24 * 60 * 60 * 1000 // 7 days (max Discord timeout)
+};
+
+// Helper function to format MS duration into human-readable format
+function formatDuration(ms: number): string {
+  const seconds = Math.floor((ms / 1000) % 60);
+  const minutes = Math.floor((ms / (1000 * 60)) % 60);
+  const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
+  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+  
+  const parts = [];
+  if (days > 0) parts.push(`${days} day${days !== 1 ? 's' : ''}`);
+  if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? 's' : ''}`);
+  if (minutes > 0) parts.push(`${minutes} minute${minutes !== 1 ? 's' : ''}`);
+  if (seconds > 0) parts.push(`${seconds} second${seconds !== 1 ? 's' : ''}`);
+  
+  return parts.join(', ');
+}
+
+// Different mod actions tracked for audit logs
+enum ModAction {
+  BAN = 'BAN',
+  KICK = 'KICK',
+  TIMEOUT = 'TIMEOUT',
+  WARNING = 'WARNING',
+  CLEAR = 'CLEAR',
+  LOCK = 'LOCK',
+  UNLOCK = 'UNLOCK',
+  SLOWMODE = 'SLOWMODE'
+}
+
+// Helper for audit logs
+async function logModAction(
+  message: Message, 
+  action: ModAction, 
+  target: GuildMember | TextChannel, 
+  reason: string,
+  duration?: number
+): Promise<void> {
+  const guild = message.guild;
+  if (!guild) return;
+  
+  // You could use a dedicated logging channel
+  const logChannelName = 'mod-logs';
+  const logChannel = guild.channels.cache.find(
+    (channel: any) => channel.name === logChannelName && channel.isTextBased()
+  );
+  
+  const embed = new EmbedBuilder()
+    .setColor(0xFF0000)
+    .setTitle(`Moderation Action: ${action}`)
+    .setAuthor({
+      name: message.author.tag,
+      iconURL: message.author.displayAvatarURL()
+    })
+    .setTimestamp();
+  
+  if (target instanceof GuildMember) {
+    embed.addFields(
+      { name: 'User', value: `${target.user.tag} (${target.id})` },
+      { name: 'Reason', value: reason || 'No reason provided' }
+    );
+    
+    if (duration) {
+      embed.addFields({ name: 'Duration', value: formatDuration(duration) });
+    }
+  } else {
+    embed.addFields(
+      { name: 'Channel', value: `${target.name} (${target.id})` },
+      { name: 'Reason', value: reason || 'No reason provided' }
+    );
+    
+    if (duration) {
+      embed.addFields({ name: 'Duration', value: formatDuration(duration) });
+    }
+  }
+  
+  if (logChannel && typeof logChannel.isTextBased === 'function' && logChannel.isTextBased()) {
+    await (logChannel as TextChannel).send({ embeds: [embed] });
+  }
+}
+
 export const moderationCommands: Command[] = [
   // 1. Ban command
   {

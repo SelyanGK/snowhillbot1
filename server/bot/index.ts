@@ -1,6 +1,8 @@
 import { Client, GatewayIntentBits, Collection, Events } from 'discord.js';
 import { loadCommands } from './commands';
 import { setupEvents } from './events';
+import { setupSlashCommands } from './slash-commands';
+import { deploySlashCommands } from './deploy-commands';
 import { storage } from '../storage';
 import { log } from '../vite';
 
@@ -33,6 +35,7 @@ export async function initBot() {
 
     // Setup event handlers
     setupEvents(client);
+    setupSlashCommands(client);
 
     // Connect to Discord
     const token = process.env.DISCORD_BOT_TOKEN;
@@ -43,8 +46,19 @@ export async function initBot() {
     await client.login(token);
     log(`Bot logged in as ${client.user?.tag}`, 'bot');
     
+    // Register slash commands
+    if (client.user) {
+      try {
+        await deploySlashCommands(client.user.id, token);
+        log('Slash commands deployed successfully', 'bot');
+      } catch (error) {
+        console.error('Error deploying slash commands:', error);
+        log('Failed to deploy slash commands', 'bot');
+      }
+    }
+    
     // Set bot activity
-    client.user?.setActivity('!help | Snowhill', { type: 3 }); // 3 = Watching
+    client.user?.setActivity('+help | .gg/snowhill', { type: 3 }); // 3 = Watching
 
     return client;
   } catch (error) {
@@ -78,10 +92,10 @@ export function incrementModerationActions() {
 export async function getPrefix(guildId: string): Promise<string> {
   try {
     const server = await storage.getServer(guildId);
-    return server?.prefix || '!';
+    return server?.prefix || '+';
   } catch (error) {
     console.error('Error getting prefix:', error);
-    return '!'; // Default prefix
+    return '+'; // Default prefix
   }
 }
 

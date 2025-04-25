@@ -4,6 +4,137 @@ import { EmbedBuilder, AttachmentBuilder } from 'discord.js';
 import axios from 'axios';
 
 // Fun commands collection
+// Enhanced 8ball command with categories of responses
+const eightBallResponses = {
+  positive: [
+    'It is certain.', 'It is decidedly so.', 'Without a doubt.',
+    'Yes definitely.', 'You may rely on it.', 'As I see it, yes.',
+    'Most likely.', 'Outlook good.', 'Yes.', 'Signs point to yes.'
+  ],
+  neutral: [
+    'Reply hazy, try again.', 'Ask again later.', 'Better not tell you now.',
+    'Cannot predict now.', 'Concentrate and ask again.'
+  ],
+  negative: [
+    'Don\'t count on it.', 'My reply is no.', 'My sources say no.',
+    'Outlook not so good.', 'Very doubtful.'
+  ]
+};
+
+// Rock-paper-scissors choices and rules
+const rpsChoices = ['rock', 'paper', 'scissors'];
+const rpsRules = {
+  rock: { beats: 'scissors', losesTo: 'paper' },
+  paper: { beats: 'rock', losesTo: 'scissors' },
+  scissors: { beats: 'paper', losesTo: 'rock' }
+};
+
+// Word list for hangman game
+const hangmanWords = [
+  'discord', 'server', 'bot', 'community', 'gaming',
+  'snowhill', 'chat', 'voice', 'friends', 'emotes',
+  'streaming', 'nitro', 'microphone', 'headset', 'webcam',
+  'memes', 'moderator', 'roles', 'commands', 'channel'
+];
+
+// ASCII art for hangman stages
+const hangmanStages = [
+  `
+  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========`,
+  `
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========`,
+  `
+  +---+
+  |   |
+  O   |
+  |   |
+      |
+      |
+=========`,
+  `
+  +---+
+  |   |
+  O   |
+ /|   |
+      |
+      |
+=========`,
+  `
+  +---+
+  |   |
+  O   |
+ /|\\  |
+      |
+      |
+=========`,
+  `
+  +---+
+  |   |
+  O   |
+ /|\\  |
+ /    |
+      |
+=========`,
+  `
+  +---+
+  |   |
+  O   |
+ /|\\  |
+ / \\  |
+      |
+=========`
+];
+
+// Random facts
+const randomFacts = [
+  'A day on Venus is longer than a year on Venus.',
+  'The shortest war in history was between Britain and Zanzibar in 1896. It lasted only 38 minutes.',
+  'A group of flamingos is called a "flamboyance".',
+  'The world\'s oldest known living tree is over 5,000 years old.',
+  'Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly good to eat.',
+  'The unicorn is Scotland\'s national animal.',
+  'A bolt of lightning is five times hotter than the surface of the sun.',
+  'The average person walks the equivalent of three times around the world in a lifetime.',
+  'The world\'s largest desert is Antarctica, not the Sahara.',
+  'A blue whale\'s heart is so big that a human could swim through its arteries.',
+  'Octopuses have three hearts.',
+  'Cats can\'t taste sweet things.',
+  'The Hawaiian alphabet has only 12 letters.',
+  'A hummingbird weighs less than a penny.',
+  'It would take about 1.2 million mosquitoes, each sucking once, to completely drain the average human of blood.'
+];
+
+// Dad jokes
+const dadJokes = [
+  'I told my wife she was drawing her eyebrows too high. She looked surprised.',
+  'Why don\'t scientists trust atoms? Because they make up everything!',
+  'What did the buffalo say to his son when he left for college? Bison!',
+  'How do you organize a space party? You planet!',
+  'I\'m reading a book about anti-gravity. It\'s impossible to put down!',
+  'Did you hear about the mathematician who\'s afraid of negative numbers? He\'ll stop at nothing to avoid them!',
+  'Why don\'t skeletons fight each other? They don\'t have the guts.',
+  'What do you call a fake noodle? An impasta!',
+  'How do you make a tissue dance? Put a little boogie in it!',
+  'Why did the scarecrow win an award? Because he was outstanding in his field!',
+  'I would tell you a joke about construction, but I\'m still working on it.',
+  'Why don\'t eggs tell jokes? They\'d crack each other up.',
+  'I used to be a baker, but I couldn\'t make enough dough.',
+  'What\'s brown and sticky? A stick.',
+  'Why did the bicycle fall over? Because it was two tired!'
+];
+
 export const funCommands: Command[] = [
   // 1. 8ball command
   {
