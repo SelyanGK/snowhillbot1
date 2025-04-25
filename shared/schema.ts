@@ -29,9 +29,9 @@ export const servers = pgTable("servers", {
   name: text("name").notNull(),
   prefix: text("prefix").notNull().default("+"),
   antiPingEnabled: boolean("anti_ping_enabled").notNull().default(false),
-  antiPingExcludedRoles: text("anti_ping_excluded_roles").array(),
-  antiPingBypassRole: text("anti_ping_bypass_role"),
-  antiPingProtectedRole: text("anti_ping_protected_role"),
+  antiPingExcludedRoles: text("anti_ping_excluded_roles").array().default([]),
+  antiPingBypassRoles: text("anti_ping_bypass_roles").array().default([]),
+  antiPingProtectedRoles: text("anti_ping_protected_roles").array().default([]), 
   antiPingPunishment: text("anti_ping_punishment").default("escalate"), // Changed default to escalate for progressive timeouts
   logSettings: text("log_settings"), // JSON string containing log channel and enabled events
   addedAt: timestamp("added_at").defaultNow().notNull(),

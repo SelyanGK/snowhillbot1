@@ -396,60 +396,70 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     case CommandCategory.ANTIPING:
       switch (command.name) {
         case 'antiping':
-          // Handle subcommands for antiping
-          const subcommand = interaction.options.getSubcommand(true);
-          
-          if (subcommand === 'enable') {
-            // Handle enable subcommand
-            const args = ['on']; // Use 'on' for the enable subcommand
-            await command.execute(mockMessage, args, interaction.client);
-          } else if (subcommand === 'disable') {
-            // Handle disable subcommand
-            const args = ['off']; // Use 'off' for the disable subcommand
-            await command.execute(mockMessage, args, interaction.client);
-          } else if (subcommand === 'set-bypass-role') {
-            // Handle set-bypass-role subcommand
-            const role = interaction.options.getRole('role');
-            if (!role) {
-              await mockMessage.reply('Please specify a role.');
-              return;
+          try {
+            // Handle subcommands for antiping
+            const subcommand = interaction.options.getSubcommand(true);
+            console.log("Antiping subcommand called:", subcommand);
+            
+            if (subcommand === 'enable') {
+              // Handle enable subcommand (maps to 'on' in the text command)
+              await command.execute(mockMessage, ['on'], interaction.client);
+            } 
+            else if (subcommand === 'disable') {
+              // Handle disable subcommand (maps to 'off' in the text command)
+              await command.execute(mockMessage, ['off'], interaction.client);
+            } 
+            else if (subcommand === 'set-bypass-role') {
+              // Handle set-bypass-role subcommand
+              const role = interaction.options.getRole('role');
+              if (!role) {
+                await mockMessage.reply('Please specify a role.');
+                return;
+              }
+              // Use 'bypass' action for the first argument
+              await command.execute(mockMessage, ['bypass', role.id], interaction.client);
+            } 
+            else if (subcommand === 'set-protected-role') {
+              // Handle set-protected-role subcommand
+              const role = interaction.options.getRole('role');
+              if (!role) {
+                await mockMessage.reply('Please specify a role.');
+                return;
+              }
+              // Use 'protect' action for the first argument
+              await command.execute(mockMessage, ['protect', role.id], interaction.client);
+            } 
+            else if (subcommand === 'add-excluded-role') {
+              // Handle add-excluded-role subcommand
+              const role = interaction.options.getRole('role');
+              if (!role) {
+                await mockMessage.reply('Please specify a role.');
+                return;
+              }
+              // Use 'exclude' action for the first argument
+              await command.execute(mockMessage, ['exclude', role.id], interaction.client);
+            } 
+            else if (subcommand === 'remove-excluded-role') {
+              // Handle remove-excluded-role subcommand
+              const role = interaction.options.getRole('role');
+              if (!role) {
+                await mockMessage.reply('Please specify a role.');
+                return;
+              }
+              // Use 'include' action for the first argument
+              await command.execute(mockMessage, ['include', role.id], interaction.client);
+            } 
+            else if (subcommand === 'settings') {
+              // Handle settings subcommand - no args needed for settings display
+              await command.execute(mockMessage, ['settings'], interaction.client);
+            } 
+            else {
+              // Default case for unknown subcommands
+              await mockMessage.reply(`Unknown subcommand: ${subcommand}. Please use one of: enable, disable, set-bypass-role, set-protected-role, add-excluded-role, remove-excluded-role, settings.`);
             }
-            const args = ['bypass', role.id];
-            await command.execute(mockMessage, args, interaction.client);
-          } else if (subcommand === 'set-protected-role') {
-            // Handle set-protected-role subcommand
-            const role = interaction.options.getRole('role');
-            if (!role) {
-              await mockMessage.reply('Please specify a role.');
-              return;
-            }
-            const args = ['protect', role.id];
-            await command.execute(mockMessage, args, interaction.client);
-          } else if (subcommand === 'add-excluded-role') {
-            // Handle add-excluded-role subcommand
-            const role = interaction.options.getRole('role');
-            if (!role) {
-              await mockMessage.reply('Please specify a role.');
-              return;
-            }
-            const args = ['exclude', role.id];
-            await command.execute(mockMessage, args, interaction.client);
-          } else if (subcommand === 'remove-excluded-role') {
-            // Handle remove-excluded-role subcommand
-            const role = interaction.options.getRole('role');
-            if (!role) {
-              await mockMessage.reply('Please specify a role.');
-              return;
-            }
-            const args = ['include', role.id];
-            await command.execute(mockMessage, args, interaction.client);
-          } else if (subcommand === 'settings') {
-            // Handle settings subcommand - no args needed for settings display
-            const args: string[] = [];
-            await command.execute(mockMessage, args, interaction.client);
-          } else {
-            // Default case for unknown subcommands
-            await advancedImplementationNeeded();
+          } catch (error) {
+            console.error("Error processing antiping subcommand:", error);
+            await mockMessage.reply('Error processing the command. Make sure you provided all required parameters.');
           }
           break;
         default:
