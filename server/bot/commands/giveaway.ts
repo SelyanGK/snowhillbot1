@@ -21,7 +21,7 @@ import ms from 'ms';
 function parseDuration(durationStr: string): number | null {
   try {
     // Use ms library to parse time strings like "1d", "2h", etc.
-    return ms(durationStr);
+    return ms(durationStr as any);
   } catch (error) {
     return null;
   }
@@ -71,8 +71,7 @@ async function selectWinners(giveawayId: number, winnerCount: number): Promise<s
     await storage.createGiveawayWinner({
       giveawayId,
       userId: winner.userId,
-      username: winner.username,
-      hasClaimed: false
+      username: winner.username
     });
   }
   
@@ -347,8 +346,8 @@ export const giveawayCommands: Command[] = [
           prize,
           winnerCount,
           requiredRoleId: roleId,
-          endTime,
-          hasEnded: false
+          hostId: message.author.id,
+          endTime
         });
         
         // Update the button with the correct ID
@@ -489,8 +488,7 @@ export async function handleGiveawayButtonClick(interaction: ButtonInteraction, 
     await storage.createGiveawayEntry({
       giveawayId,
       userId: interaction.user.id,
-      username: interaction.user.tag,
-      enteredAt: new Date()
+      username: interaction.user.tag
     });
     
     await interaction.reply({ content: 'You have entered the giveaway! Good luck! 🍀', ephemeral: true });
