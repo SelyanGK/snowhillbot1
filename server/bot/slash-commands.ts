@@ -179,18 +179,39 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     content: `/${command.name}`,
     commandName: command.name, // Special property to identify slash commands
     reply: async (content: any) => {
-      if (typeof content === 'string') {
-        return await interaction.replied 
-          ? interaction.followUp(content) 
-          : interaction.reply(content);
-      } else if (content.embeds) {
-        return await interaction.replied 
-          ? interaction.followUp({ embeds: content.embeds }) 
-          : interaction.reply({ embeds: content.embeds });
-      } else {
-        return await interaction.replied 
-          ? interaction.followUp(content) 
-          : interaction.reply(content);
+      try {
+        // Check if the interaction has been replied to or deferred
+        if (interaction.replied || interaction.deferred) {
+          // Use followUp for interactions that have been replied to or deferred
+          if (typeof content === 'string') {
+            return await interaction.followUp(content);
+          } else if (content.embeds) {
+            return await interaction.followUp({ embeds: content.embeds });
+          } else {
+            return await interaction.followUp(content);
+          }
+        } else {
+          // Use reply for interactions that haven't been replied to yet
+          if (typeof content === 'string') {
+            return await interaction.reply(content);
+          } else if (content.embeds) {
+            return await interaction.reply({ embeds: content.embeds });
+          } else {
+            return await interaction.reply(content);
+          }
+        }
+      } catch (error) {
+        console.error('Error replying to interaction:', error);
+        // If an error occurs, try one last attempt to send a message
+        try {
+          return await interaction.followUp({
+            content: 'There was an error processing your command.',
+            ephemeral: true
+          });
+        } catch (followUpError) {
+          console.error('Failed to send follow-up message:', followUpError);
+          return null;
+        }
       }
     },
     // Add more methods/properties as needed
@@ -219,10 +240,19 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
       await command.execute(mockMessage, args, interaction.client);
     } catch (error) {
       console.error("Error executing command:", error);
-      await interaction.reply({
-        content: 'This command has advanced features that are available using the text command. Try using `+' + command.name + '` for full functionality.',
-        ephemeral: true
-      });
+      
+      // Check if the interaction has already been replied to
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({
+          content: 'This command has advanced features that are available using the text command. Try using `+' + command.name + '` for full functionality.',
+          ephemeral: true
+        });
+      } else {
+        await interaction.reply({
+          content: 'This command has advanced features that are available using the text command. Try using `+' + command.name + '` for full functionality.',
+          ephemeral: true
+        });
+      }
     }
   };
   

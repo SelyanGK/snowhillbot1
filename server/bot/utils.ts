@@ -1,6 +1,13 @@
 import { CommandCategory } from "@shared/schema";
-import { Client, Message, PermissionResolvable } from "discord.js";
+import { Client, Collection, Message, PermissionResolvable } from "discord.js";
 import { storage } from "../storage";
+
+// Extend the Discord.js Client type to include our custom properties
+declare module "discord.js" {
+  export interface Client {
+    commands: Collection<string, Command>;
+  }
+}
 
 // Command interface
 export interface Command {
