@@ -23,7 +23,7 @@ export async function deploySlashCommands(clientId: string, token: string) {
         builder.addUserOption(option => 
           option.setName('user')
             .setDescription('The user to target')
-            .setRequired(cmd.usage.includes('<user>') || cmd.usage.includes('<@user>')));
+            .setRequired(true)); // Always make user a required field
       }
       
       if (cmd.usage.includes('<role>') || cmd.usage.includes('[role]')) {
