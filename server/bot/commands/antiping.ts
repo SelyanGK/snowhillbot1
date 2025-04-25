@@ -1,4 +1,4 @@
-import { Command } from '../utils';
+import { Command, getCommandPrefix } from '../utils';
 import { CommandCategory } from '@shared/schema';
 import { EmbedBuilder, PermissionsBitField } from 'discord.js';
 import { incrementModerationActions } from '../index';
@@ -10,7 +10,7 @@ export const antipingCommands: Command[] = [
   {
     name: 'antiping',
     description: 'Toggles anti-ping protection for the server',
-    usage: '+antiping [on/off]',
+    usage: '+antiping [on/off]', // getCommandPrefix will handle this dynamically
     category: CommandCategory.ANTIPING,
     cooldown: 0,
     requiredPermissions: [PermissionsBitField.Flags.ManageGuild],
@@ -128,10 +128,10 @@ export const antipingCommands: Command[] = [
             { name: 'Punishment', value: server.antiPingPunishment.charAt(0).toUpperCase() + server.antiPingPunishment.slice(1), inline: true },
             { name: 'Excluded Roles', value: server.antiPingExcludedRoles.length ? server.antiPingExcludedRoles.map(id => `<@&${id}>`).join(', ') : 'None' },
             { name: 'Commands', value: [
-              '`+antiping [on/off]` - Toggle anti-ping protection',
-              '`+antipingconfig punishment [warn/timeout/kick/ban]` - Set punishment type',
-              '`+antipingconfig exclude @role` - Exclude a role from anti-ping',
-              '`+antipingconfig include @role` - Remove exclusion for a role'
+              `\`${getCommandPrefix(message)}antiping [on/off]\` - Toggle anti-ping protection`,
+              `\`${getCommandPrefix(message)}antipingconfig punishment [warn/timeout/kick/ban]\` - Set punishment type`,
+              `\`${getCommandPrefix(message)}antipingconfig exclude @role\` - Exclude a role from anti-ping`,
+              `\`${getCommandPrefix(message)}antipingconfig include @role\` - Remove exclusion for a role`
             ].join('\n') }
           )
           .setFooter({ text: `Requested by ${message.author.tag}` })
@@ -221,7 +221,8 @@ export const antipingCommands: Command[] = [
         }
 
         default:
-          return message.reply('Invalid setting. Use `+antipingconfig` without arguments to see available options.');
+          const prefix = getCommandPrefix(message);
+          return message.reply(`Invalid setting. Use \`${prefix}antipingconfig\` without arguments to see available options.`);
       }
     }
   },
@@ -308,7 +309,7 @@ export const antipingCommands: Command[] = [
             { name: 'Reason', value: reason },
             { name: 'Moderator', value: message.author.tag }
           )
-          .setFooter({ text: 'Use +pingunblock to remove this restriction' })
+          .setFooter({ text: `Use ${getCommandPrefix(message)}pingunblock to remove this restriction` })
           .setTimestamp();
 
         return message.reply({ embeds: [embed] });
@@ -546,7 +547,7 @@ export const antipingCommands: Command[] = [
               { name: 'Duration', value: 'Anti-raid mode will stay active until manually disabled.' },
               { name: 'Moderator', value: message.author.tag }
             )
-            .setFooter({ text: 'Use +antiraid off to disable when the threat has passed' })
+            .setFooter({ text: `Use ${getCommandPrefix(message)}antiraid off to disable when the threat has passed` })
             .setTimestamp();
 
           return message.reply({ embeds: [embed] });
@@ -560,7 +561,7 @@ export const antipingCommands: Command[] = [
               { name: 'Note', value: 'Anti-ping protection remains enabled, but with normal sensitivity.' },
               { name: 'Moderator', value: message.author.tag }
             )
-            .setFooter({ text: 'You can use +antiping off to completely disable ping protection' })
+            .setFooter({ text: `You can use ${getCommandPrefix(message)}antiping off to completely disable ping protection` })
             .setTimestamp();
 
           return message.reply({ embeds: [embed] });
@@ -610,7 +611,7 @@ export const antipingCommands: Command[] = [
               ].join('\n') },
               { name: 'Status', value: '✅ Active' }
             )
-            .setFooter({ text: 'Use +pingshield off to disable this feature' });
+            .setFooter({ text: `Use ${getCommandPrefix(message)}pingshield off to disable this feature` });
 
           return message.reply({ embeds: [embed] });
         } else {
@@ -622,7 +623,7 @@ export const antipingCommands: Command[] = [
               { name: 'What this means', value: 'You will now receive all ping notifications as normal.' },
               { name: 'Status', value: '❌ Inactive' }
             )
-            .setFooter({ text: 'Use +pingshield on to enable this feature again' });
+            .setFooter({ text: `Use ${getCommandPrefix(message)}pingshield on to enable this feature again` });
 
           return message.reply({ embeds: [embed] });
         }
