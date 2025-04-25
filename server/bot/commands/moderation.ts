@@ -1164,7 +1164,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'setprefix',
     description: 'Changes the command prefix for the server',
-    usage: '+setprefix <new prefix>',
+    usage: '+setprefix [new prefix]',
     category: CommandCategory.MODERATION,
     cooldown: 10,
     requiredPermissions: [PermissionsBitField.Flags.ManageGuild],

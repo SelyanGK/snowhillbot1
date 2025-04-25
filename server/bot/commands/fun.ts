@@ -387,7 +387,7 @@ export const funCommands: Command[] = [
   {
     name: 'meme',
     description: 'Sends a random meme from Reddit',
-    usage: '!meme [subreddit]',
+    usage: '+meme [subreddit]',
     category: CommandCategory.FUN,
     cooldown: 10,
     requiredPermissions: [],
@@ -435,7 +435,7 @@ export const funCommands: Command[] = [
   {
     name: 'rps',
     description: 'Play rock, paper, scissors against the bot',
-    usage: '!rps [rock/paper/scissors]',
+    usage: '+rps [rock/paper/scissors]',
     aliases: ['rockpaperscissors'],
     category: CommandCategory.FUN,
     cooldown: 3,
@@ -488,7 +488,7 @@ export const funCommands: Command[] = [
   {
     name: 'emote',
     description: 'Express an emotion with a GIF',
-    usage: '!emote [emotion] [optional: target user]',
+    usage: '+emote [emotion] [@user]',
     aliases: ['emotion', 'express'],
     category: CommandCategory.FUN,
     cooldown: 5,
@@ -535,7 +535,7 @@ export const funCommands: Command[] = [
   {
     name: 'fact',
     description: 'Shares a random fun fact',
-    usage: '!fact [optional: animal]',
+    usage: '+fact [animal]',
     category: CommandCategory.FUN,
     cooldown: 5,
     requiredPermissions: [],
@@ -573,7 +573,7 @@ export const funCommands: Command[] = [
   {
     name: 'poll',
     description: 'Creates a simple poll with reactions',
-    usage: '!poll [question]',
+    usage: '+poll [question]',
     category: CommandCategory.FUN,
     cooldown: 30,
     requiredPermissions: [],
