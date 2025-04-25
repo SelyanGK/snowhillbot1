@@ -18,11 +18,12 @@ export async function deploySlashCommands(clientId: string, token: string) {
       // For commands that need arguments, add appropriate options
       // We'll have to manually define some common options based on the command usage
       
-      if (cmd.usage.includes('<user>') || cmd.usage.includes('[user]')) {
+      if (cmd.usage.includes('<user>') || cmd.usage.includes('[user]') || 
+          cmd.usage.includes('<@user>') || cmd.usage.includes('[@user]')) {
         builder.addUserOption(option => 
           option.setName('user')
             .setDescription('The user to target')
-            .setRequired(cmd.usage.includes('<user>')));
+            .setRequired(cmd.usage.includes('<user>') || cmd.usage.includes('<@user>')));
       }
       
       if (cmd.usage.includes('<role>') || cmd.usage.includes('[role]')) {
@@ -71,6 +72,22 @@ export async function deploySlashCommands(clientId: string, token: string) {
       switch(cmd.category) {
         case CommandCategory.MODERATION:
           if (cmd.name === 'ban' || cmd.name === 'kick' || cmd.name === 'timeout') {
+            // Add user option if not already added
+            if (!builder.options.some(opt => opt.name === 'user')) {
+              builder.addUserOption(option => 
+                option.setName('user')
+                  .setDescription('The user to perform this action on')
+                  .setRequired(true));
+            }
+            
+            // Add duration option for these commands
+            if (!builder.options.some(opt => opt.name === 'duration')) {
+              builder.addStringOption(option => 
+                option.setName('duration')
+                  .setDescription('The duration (e.g. 1h, 1d, 7d)'));
+            }
+            
+            // Add reason option if not already added  
             if (!builder.options.some(opt => opt.name === 'reason')) {
               builder.addStringOption(option => 
                 option.setName('reason')

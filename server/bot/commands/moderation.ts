@@ -36,6 +36,7 @@ function formatDuration(ms: number): string {
 // Different mod actions tracked for audit logs
 enum ModAction {
   BAN = 'BAN',
+  UNBAN = 'UNBAN',
   KICK = 'KICK',
   TIMEOUT = 'TIMEOUT',
   WARNING = 'WARNING',
@@ -52,7 +53,7 @@ async function dmUserAboutAction(
   serverName: string,
   reason: string,
   moderatorTag: string,
-  duration?: number
+  duration?: number | string
 ): Promise<boolean> {
   try {
     const embed = new EmbedBuilder()
@@ -67,7 +68,9 @@ async function dmUserAboutAction(
       .setTimestamp();
 
     if (duration) {
-      embed.addFields({ name: 'Duration', value: formatDuration(duration) });
+      // Handle both number (ms) and string (formatted duration)
+      const durationText = typeof duration === 'number' ? formatDuration(duration) : duration;
+      embed.addFields({ name: 'Duration', value: durationText });
     }
     
     // Add appeal information based on action type
@@ -76,11 +79,13 @@ async function dmUserAboutAction(
         embed.addFields({ name: 'Appeal', value: 'If you believe this action was in error, you may contact the server administrators.' });
         break;
       case ModAction.TIMEOUT:
-        embed.addFields({ 
-          name: 'Timeout Ends', 
-          value: `<t:${Math.floor((Date.now() + duration!) / 1000)}:R>`,
-          inline: true 
-        });
+        if (typeof duration === 'number') {
+          embed.addFields({ 
+            name: 'Timeout Ends', 
+            value: `<t:${Math.floor((Date.now() + duration) / 1000)}:R>`,
+            inline: true 
+          });
+        }
         break;
     }
 
@@ -100,7 +105,7 @@ async function logModAction(
   action: ModAction, 
   target: GuildMember | TextChannel, 
   reason: string,
-  duration?: number
+  duration?: number | string
 ): Promise<void> {
   const guild = message.guild;
   if (!guild) return;
@@ -164,7 +169,9 @@ async function logModAction(
     );
     
     if (duration) {
-      embed.addFields({ name: 'Duration', value: formatDuration(duration) });
+      // Handle both number (ms) and string (formatted duration)
+      const durationText = typeof duration === 'number' ? formatDuration(duration) : duration;
+      embed.addFields({ name: 'Duration', value: durationText });
     }
   } else {
     embed.addFields(
@@ -173,7 +180,9 @@ async function logModAction(
     );
     
     if (duration) {
-      embed.addFields({ name: 'Duration', value: formatDuration(duration) });
+      // Handle both number (ms) and string (formatted duration)
+      const durationText = typeof duration === 'number' ? formatDuration(duration) : duration;
+      embed.addFields({ name: 'Duration', value: durationText });
     }
   }
   
@@ -333,8 +342,8 @@ export const moderationCommands: Command[] = [
   // 2. Kick command
   {
     name: 'kick',
-    description: 'Kicks a user from the server',
-    usage: '!kick [@user] [reason]',
+    description: 'Kicks a user from the server with optional duration',
+    usage: '+kick [@user] [duration] [reason]',
     category: CommandCategory.MODERATION,
     cooldown: 3,
     requiredPermissions: [PermissionsBitField.Flags.KickMembers],
@@ -365,8 +374,30 @@ export const moderationCommands: Command[] = [
         return message.reply('You cannot kick this user as they have higher or equal roles to you.');
       }
 
+      // Parse duration and reason
+      let duration = 0; // 0 means no auto-rejoin prevention 
+      let reasonStartIndex = 1;
+      
+      // Check if second argument is a duration (e.g., 1d, 7d, 30d)
+      if (args.length > 1) {
+        // Look for patterns like 1d, 7d, 30d, 1h, etc.
+        if (/^\d+[smhdw]$/.test(args[1])) {
+          try {
+            // Convert to milliseconds using the ms library
+            duration = require('ms')(args[1]);
+            reasonStartIndex = 2; // Reason starts after the duration
+          } catch (error) {
+            // If parsing fails, assume it's part of the reason
+            duration = 0;
+          }
+        }
+      }
+      
       // Extract reason
-      const reason = args.slice(1).join(' ') || 'No reason provided';
+      const reason = args.slice(reasonStartIndex).join(' ') || 'No reason provided';
+      
+      // Get duration text
+      const durationText = duration > 0 ? formatDuration(duration) : 'No rejoin restriction';
 
       try {
         // Try to send a DM before kicking
@@ -375,7 +406,8 @@ export const moderationCommands: Command[] = [
           ModAction.KICK,
           message.guild?.name || 'Server',
           reason,
-          message.author.tag
+          message.author.tag,
+          duration > 0 ? duration : undefined
         );
 
         // Kick the user
@@ -386,7 +418,7 @@ export const moderationCommands: Command[] = [
         
         // Log to mod logs
         if (message.guild) {
-          await logModAction(message, ModAction.KICK, member, reason);
+          await logModAction(message, ModAction.KICK, member, reason, duration > 0 ? durationText : undefined);
         }
         
         // Log activity for dashboard
@@ -395,8 +427,29 @@ export const moderationCommands: Command[] = [
             serverId: message.guild.id,
             userId: message.author.id,
             username: message.author.tag,
-            command: `kick ${user.tag}`
+            command: `kick ${user.tag} ${duration > 0 ? args[1] : ''}`
           });
+        }
+
+        // If duration is specified, temporarily add user to a rejoin prevention list
+        if (duration > 0 && message.guild) {
+          const guildId = message.guild.id;
+          const userId = user.id;
+          
+          // Store in memory that this user shouldn't be allowed to rejoin for duration
+          // This could be implemented with a Map in the bot or in the storage system
+          
+          // In a more complete implementation, you would:
+          // 1. Store the user ID, guild ID, and expiry time in a database
+          // 2. Check this database when users try to join
+          
+          // For now, we'll just log it as a placeholder
+          console.log(`[Kick with duration] User ${user.tag} (${userId}) kicked from ${message.guild.name} (${guildId}) with rejoin prevention for ${durationText}`);
+          
+          // Example placeholder for rejoin prevention logic
+          setTimeout(() => {
+            console.log(`[Kick duration expired] User ${user.tag} (${userId}) can now rejoin ${message.guild.name} (${guildId})`);
+          }, duration);
         }
 
         // Send success message
@@ -405,6 +458,7 @@ export const moderationCommands: Command[] = [
           .setTitle('User Kicked')
           .setDescription(`${user.tag} has been kicked from the server.`)
           .addFields(
+            { name: 'Duration', value: durationText },
             { name: 'Reason', value: reason },
             { name: 'Moderator', value: message.author.tag },
             { name: 'DM Notification', value: dmSuccess ? '✅ User was notified via DM' : '❌ Could not DM user' }

@@ -267,8 +267,20 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
             return;
           }
           
+          const banDuration = interaction.options.getString('duration') || null;
           const banReason = interaction.options.getString('reason') || 'No reason provided';
-          const banArgs = [banUser.toString(), ...banReason.split(' ')];
+          
+          // Create args array: [user, duration (if provided), reason]
+          const banArgs = [banUser.toString()];
+          
+          // Add duration if provided
+          if (banDuration) {
+            banArgs.push(banDuration);
+          }
+          
+          // Add reason
+          banArgs.push(...banReason.split(' '));
+          
           await command.execute(mockMessage, banArgs, interaction.client);
           break;
           
@@ -280,8 +292,20 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
             return;
           }
           
+          const kickDuration = interaction.options.getString('duration') || null;
           const kickReason = interaction.options.getString('reason') || 'No reason provided';
-          const kickArgs = [kickUser.toString(), ...kickReason.split(' ')];
+          
+          // Create args array: [user, duration (if provided), reason]
+          const kickArgs = [kickUser.toString()];
+          
+          // Add duration if provided
+          if (kickDuration) {
+            kickArgs.push(kickDuration);
+          }
+          
+          // Add reason
+          kickArgs.push(...kickReason.split(' '));
+          
           await command.execute(mockMessage, kickArgs, interaction.client);
           break;
           
