@@ -10,7 +10,7 @@ export const antipingCommands: Command[] = [
   {
     name: 'antiping',
     description: 'Toggles anti-ping protection for the server',
-    usage: '!antiping [on/off]',
+    usage: '+antiping [on/off]',
     category: CommandCategory.ANTIPING,
     cooldown: 0,
     requiredPermissions: [PermissionsBitField.Flags.ManageGuild],
@@ -71,7 +71,7 @@ export const antipingCommands: Command[] = [
               ? 'Users who mass ping or ping spam will be automatically warned or punished according to the server settings.' 
               : 'The bot will no longer monitor or take action against users who mass ping others.' 
             },
-            { name: 'Configuration', value: 'Use `!antipingconfig` to configure anti-ping settings.' }
+            { name: 'Configuration', value: 'Use `+antipingconfig` to configure anti-ping settings.' }
           )
           .setFooter({ text: `Configured by ${message.author.tag}` })
           .setTimestamp();
@@ -88,7 +88,7 @@ export const antipingCommands: Command[] = [
   {
     name: 'antipingconfig',
     description: 'Configures anti-ping protection settings',
-    usage: '!antipingconfig [setting] [value]',
+    usage: '+antipingconfig [setting] [value]',
     aliases: ['antipingsettings', 'antipingset'],
     category: CommandCategory.ANTIPING,
     cooldown: 5,
@@ -128,10 +128,10 @@ export const antipingCommands: Command[] = [
             { name: 'Punishment', value: server.antiPingPunishment.charAt(0).toUpperCase() + server.antiPingPunishment.slice(1), inline: true },
             { name: 'Excluded Roles', value: server.antiPingExcludedRoles.length ? server.antiPingExcludedRoles.map(id => `<@&${id}>`).join(', ') : 'None' },
             { name: 'Commands', value: [
-              '`!antiping [on/off]` - Toggle anti-ping protection',
-              '`!antipingconfig punishment [warn/timeout/kick/ban]` - Set punishment type',
-              '`!antipingconfig exclude @role` - Exclude a role from anti-ping',
-              '`!antipingconfig include @role` - Remove exclusion for a role'
+              '`+antiping [on/off]` - Toggle anti-ping protection',
+              '`+antipingconfig punishment [warn/timeout/kick/ban]` - Set punishment type',
+              '`+antipingconfig exclude @role` - Exclude a role from anti-ping',
+              '`+antipingconfig include @role` - Remove exclusion for a role'
             ].join('\n') }
           )
           .setFooter({ text: `Requested by ${message.author.tag}` })
@@ -221,7 +221,7 @@ export const antipingCommands: Command[] = [
         }
 
         default:
-          return message.reply('Invalid setting. Use `!antipingconfig` without arguments to see available options.');
+          return message.reply('Invalid setting. Use `+antipingconfig` without arguments to see available options.');
       }
     }
   },
@@ -308,7 +308,7 @@ export const antipingCommands: Command[] = [
             { name: 'Reason', value: reason },
             { name: 'Moderator', value: message.author.tag }
           )
-          .setFooter({ text: 'Use !pingunblock to remove this restriction' })
+          .setFooter({ text: 'Use +pingunblock to remove this restriction' })
           .setTimestamp();
 
         return message.reply({ embeds: [embed] });

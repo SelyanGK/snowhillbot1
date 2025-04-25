@@ -141,6 +141,7 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     guild: interaction.guild,
     client: interaction.client,
     content: `/${command.name}`,
+    commandName: command.name, // Special property to identify slash commands
     reply: async (content: any) => {
       if (typeof content === 'string') {
         return await interaction.replied 
