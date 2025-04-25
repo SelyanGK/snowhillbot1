@@ -146,8 +146,51 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           }
           
           try {
+            // Try to send a DM before kicking
+            let dmSuccess = false;
+            try {
+              const dmEmbed = new EmbedBuilder()
+                .setColor(0xED4245)
+                .setTitle(`You've been kicked from ${interaction.guild.name}`)
+                .setDescription(`A moderator has taken action on your account.`)
+                .addFields(
+                  { name: 'Action', value: 'KICK' },
+                  { name: 'Reason', value: reason || 'No reason provided' },
+                  { name: 'Moderator', value: interaction.user.tag }
+                )
+                .setTimestamp();
+                
+              await member.send({ embeds: [dmEmbed] });
+              dmSuccess = true;
+            } catch (dmError) {
+              console.error('Could not DM user about kick:', dmError);
+              // Continue with the kick even if DM fails
+            }
+            
             await member.kick(reason || 'No reason provided');
-            await interaction.editReply(`Successfully kicked ${member.user.tag}${reason ? ` for: ${reason}` : ''}.`);
+            
+            // Create embed for success message
+            const successEmbed = new EmbedBuilder()
+              .setColor(0xED4245)
+              .setTitle('User Kicked')
+              .setDescription(`${member.user.tag} has been kicked from the server.`)
+              .addFields(
+                { name: 'Reason', value: reason || 'No reason provided' },
+                { name: 'Moderator', value: interaction.user.tag },
+                { name: 'DM Notification', value: dmSuccess ? '✅ User was notified via DM' : '❌ Could not DM user' }
+              )
+              .setTimestamp();
+              
+            await interaction.editReply({ embeds: [successEmbed] });
+            
+            // Log to mod-logs if the channel exists
+            const modLogsChannel = interaction.guild?.channels.cache.find(
+              (channel: any) => channel.name === 'mod-logs' && channel.isTextBased()
+            );
+            
+            if (modLogsChannel && modLogsChannel.isTextBased()) {
+              await modLogsChannel.send({ embeds: [successEmbed] });
+            }
           } catch (error) {
             await interaction.editReply(`Failed to kick ${member.user.tag}: ${error.message}`);
           }
@@ -160,8 +203,52 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           }
           
           try {
+            // Try to send a DM before banning
+            let dmSuccess = false;
+            try {
+              const dmEmbed = new EmbedBuilder()
+                .setColor(0xED4245)
+                .setTitle(`You've been banned from ${interaction.guild.name}`)
+                .setDescription(`A moderator has taken action on your account.`)
+                .addFields(
+                  { name: 'Action', value: 'BAN' },
+                  { name: 'Reason', value: reason || 'No reason provided' },
+                  { name: 'Moderator', value: interaction.user.tag },
+                  { name: 'Appeal', value: 'If you believe this action was in error, you may contact the server administrators.' }
+                )
+                .setTimestamp();
+                
+              await member.send({ embeds: [dmEmbed] });
+              dmSuccess = true;
+            } catch (dmError) {
+              console.error('Could not DM user about ban:', dmError);
+              // Continue with the ban even if DM fails
+            }
+            
             await member.ban({ reason: reason || 'No reason provided' });
-            await interaction.editReply(`Successfully banned ${member.user.tag}${reason ? ` for: ${reason}` : ''}.`);
+            
+            // Create embed for success message
+            const successEmbed = new EmbedBuilder()
+              .setColor(0xED4245)
+              .setTitle('User Banned')
+              .setDescription(`${member.user.tag} has been banned from the server.`)
+              .addFields(
+                { name: 'Reason', value: reason || 'No reason provided' },
+                { name: 'Moderator', value: interaction.user.tag },
+                { name: 'DM Notification', value: dmSuccess ? '✅ User was notified via DM' : '❌ Could not DM user' }
+              )
+              .setTimestamp();
+              
+            await interaction.editReply({ embeds: [successEmbed] });
+            
+            // Log to mod-logs if the channel exists
+            const modLogsChannel = interaction.guild?.channels.cache.find(
+              (channel: any) => channel.name === 'mod-logs' && channel.isTextBased()
+            );
+            
+            if (modLogsChannel && modLogsChannel.isTextBased()) {
+              await modLogsChannel.send({ embeds: [successEmbed] });
+            }
           } catch (error) {
             await interaction.editReply(`Failed to ban ${member.user.tag}: ${error.message}`);
           }
@@ -175,7 +262,7 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           }
           
           // Parse duration
-          let timeoutDuration = 60 * 1000; // Default: 1 minute
+          let timeoutDuration = 60 * 60 * 1000; // Default: 1 hour
           if (duration) {
             const match = duration.match(/^(\d+)([smhdw])$/);
             if (match) {
@@ -198,10 +285,120 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           }
           
           try {
+            // Try to send a DM before timeout
+            let dmSuccess = false;
+            try {
+              const dmEmbed = new EmbedBuilder()
+                .setColor(0xED4245)
+                .setTitle(`You've been timed out in ${interaction.guild.name}`)
+                .setDescription(`A moderator has taken action on your account.`)
+                .addFields(
+                  { name: 'Action', value: 'TIMEOUT' },
+                  { name: 'Duration', value: formatDuration(timeoutDuration) },
+                  { name: 'Reason', value: reason || 'No reason provided' },
+                  { name: 'Moderator', value: interaction.user.tag },
+                  { name: 'Timeout Ends', value: `<t:${Math.floor((Date.now() + timeoutDuration) / 1000)}:R>` }
+                )
+                .setTimestamp();
+                
+              await member.send({ embeds: [dmEmbed] });
+              dmSuccess = true;
+            } catch (dmError) {
+              console.error('Could not DM user about timeout:', dmError);
+              // Continue with the timeout even if DM fails
+            }
+            
             await member.timeout(timeoutDuration, reason || 'No reason provided');
-            await interaction.editReply(`Successfully timed out ${member.user.tag} for ${formatDuration(timeoutDuration)}${reason ? ` for: ${reason}` : ''}.`);
+            
+            // Create embed for success message
+            const successEmbed = new EmbedBuilder()
+              .setColor(0xED4245)
+              .setTitle('User Timed Out')
+              .setDescription(`${member.user.tag} has been timed out for ${formatDuration(timeoutDuration)}.`)
+              .addFields(
+                { name: 'Reason', value: reason || 'No reason provided' },
+                { name: 'Moderator', value: interaction.user.tag },
+                { name: 'DM Notification', value: dmSuccess ? '✅ User was notified via DM' : '❌ Could not DM user' },
+                { name: 'Timeout Ends', value: `<t:${Math.floor((Date.now() + timeoutDuration) / 1000)}:R>` }
+              )
+              .setTimestamp();
+              
+            await interaction.editReply({ embeds: [successEmbed] });
+            
+            // Log to mod-logs if the channel exists
+            const modLogsChannel = interaction.guild?.channels.cache.find(
+              (channel: any) => channel.name === 'mod-logs' && channel.isTextBased()
+            );
+            
+            if (modLogsChannel && modLogsChannel.isTextBased()) {
+              await modLogsChannel.send({ embeds: [successEmbed] });
+            }
           } catch (error) {
             await interaction.editReply(`Failed to timeout ${member.user.tag}: ${error.message}`);
+          }
+          break;
+          
+        case 'untimeout':
+        case 'unmute':
+          if (!member) {
+            await interaction.editReply('You need to specify a user to remove timeout from.');
+            return;
+          }
+          
+          if (!member.communicationDisabledUntil) {
+            await interaction.editReply('This user is not currently timed out.');
+            return;
+          }
+          
+          try {
+            // Try to send a DM before removing timeout
+            let dmSuccess = false;
+            try {
+              const dmEmbed = new EmbedBuilder()
+                .setColor(0x57F287)
+                .setTitle(`Your timeout in ${interaction.guild.name} has been removed`)
+                .setDescription(`A moderator has removed your timeout.`)
+                .addFields(
+                  { name: 'Action', value: 'TIMEOUT REMOVED' },
+                  { name: 'Reason', value: reason || 'No reason provided' },
+                  { name: 'Moderator', value: interaction.user.tag }
+                )
+                .setTimestamp();
+                
+              await member.send({ embeds: [dmEmbed] });
+              dmSuccess = true;
+            } catch (dmError) {
+              console.error('Could not DM user about timeout removal:', dmError);
+              // Continue with the timeout removal even if DM fails
+            }
+            
+            // Remove timeout
+            await member.timeout(null, reason || 'No reason provided');
+            
+            // Create embed for success message
+            const successEmbed = new EmbedBuilder()
+              .setColor(0x57F287)
+              .setTitle('Timeout Removed')
+              .setDescription(`Timeout has been removed from ${member.user.tag}.`)
+              .addFields(
+                { name: 'Reason', value: reason || 'No reason provided' },
+                { name: 'Moderator', value: interaction.user.tag },
+                { name: 'DM Notification', value: dmSuccess ? '✅ User was notified via DM' : '❌ Could not DM user' }
+              )
+              .setTimestamp();
+              
+            await interaction.editReply({ embeds: [successEmbed] });
+            
+            // Log to mod-logs if the channel exists
+            const modLogsChannel = interaction.guild?.channels.cache.find(
+              (channel: any) => channel.name === 'mod-logs' && channel.isTextBased()
+            );
+            
+            if (modLogsChannel && modLogsChannel.isTextBased()) {
+              await modLogsChannel.send({ embeds: [successEmbed] });
+            }
+          } catch (error) {
+            await interaction.editReply(`Failed to remove timeout from ${member.user.tag}: ${error.message}`);
           }
           break;
           
@@ -216,8 +413,22 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
           try {
             const messages = await interaction.channel?.messages.fetch({ limit: deleteAmount });
             if (messages && interaction.channel?.isTextBased()) {
-              await interaction.channel.bulkDelete(messages);
-              await interaction.editReply(`Successfully deleted ${messages.size} messages.`);
+              const targetUser = user ? `from ${user.tag}` : '';
+              
+              // Filter messages by user if specified
+              const messagesToDelete = user 
+                ? messages.filter(msg => msg.author.id === user.id)
+                : messages;
+                
+              await interaction.channel.bulkDelete(messagesToDelete);
+              
+              // Create embed for success message
+              const successEmbed = new EmbedBuilder()
+                .setColor(0x57F287)
+                .setDescription(`🧹 Successfully deleted ${messagesToDelete.size} messages${targetUser}.`)
+                .setTimestamp();
+                
+              await interaction.editReply({ embeds: [successEmbed] });
               
               // Delete the reply after 5 seconds
               setTimeout(() => {
@@ -245,7 +456,32 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
             // Check if the channel has setRateLimitPerUser method
             if ('setRateLimitPerUser' in channel) {
               await channel.setRateLimitPerUser(slowmodeDuration, reason || 'No reason provided');
-              await interaction.editReply(`Successfully set slowmode to ${formatDuration(slowmodeDuration * 1000)} in ${channel.name}.`);
+              
+              // Create embed for success message
+              const successEmbed = new EmbedBuilder()
+                .setColor(slowmodeDuration === 0 ? 0x57F287 : 0xF1C40F)
+                .setTitle(slowmodeDuration === 0 ? 'Slowmode Disabled' : 'Slowmode Enabled')
+                .setDescription(
+                  slowmodeDuration === 0 
+                    ? `Slowmode has been disabled in ${channel.name}.` 
+                    : `Slowmode has been set to ${formatDuration(slowmodeDuration * 1000)} in ${channel.name}.`
+                )
+                .addFields(
+                  { name: 'Reason', value: reason || 'No reason provided' },
+                  { name: 'Moderator', value: interaction.user.tag }
+                )
+                .setTimestamp();
+                
+              await interaction.editReply({ embeds: [successEmbed] });
+              
+              // Log to mod-logs if the channel exists
+              const modLogsChannel = interaction.guild?.channels.cache.find(
+                (ch: any) => ch.name === 'mod-logs' && ch.isTextBased()
+              );
+              
+              if (modLogsChannel && modLogsChannel.isTextBased()) {
+                await modLogsChannel.send({ embeds: [successEmbed] });
+              }
             } else {
               await interaction.editReply('This channel type does not support slowmode.');
             }
