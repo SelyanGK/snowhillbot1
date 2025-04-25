@@ -602,14 +602,20 @@ export const funCommands: Command[] = [
         .setFooter({ text: `Started by ${message.author.tag}`, iconURL: message.author.displayAvatarURL() })
         .setTimestamp();
       
-      const pollMessage = await message.channel.send({ embeds: [embed] });
+      if (message.channel.type === ChannelType.GuildText || 
+          message.channel.type === ChannelType.DM ||
+          message.channel.type === ChannelType.GuildPublicThread) {
+        const pollMessage = await message.channel.send({ embeds: [embed] });
       
-      // Add reaction options
-      await pollMessage.react('👍');
-      await pollMessage.react('👎');
-      await pollMessage.react('🤷');
+        // Add reaction options
+        await pollMessage.react('👍');
+        await pollMessage.react('👎');
+        await pollMessage.react('🤷');
+        
+        return message.reply('Poll created!');
+      }
       
-      return message.reply('Poll created!');
+      return message.reply("I couldn't create a poll in this channel type.");
     }
   },
 
@@ -761,39 +767,48 @@ export const funCommands: Command[] = [
                  options.includes(response.content.toUpperCase());
         };
         
-        try {
-          const collected = await message.channel.awaitMessages({ 
-            filter, 
-            max: 1, 
-            time: 15000, 
-            errors: ['time'] 
-          });
+        // Only text channels can await messages
+        if (message.channel.type === ChannelType.GuildText || 
+            message.channel.type === ChannelType.DM ||
+            message.channel.type === ChannelType.GuildPublicThread) {
           
-          const userAnswer = collected.first()?.content.toUpperCase();
-          
-          if (userAnswer === correctLetter) {
-            const successEmbed = new EmbedBuilder()
-              .setColor(0x57F287)
-              .setTitle('Correct Answer!')
-              .setDescription(`That's right! The answer was: **${correctAnswer}**`);
+          try {
+            const collected = await message.channel.awaitMessages({ 
+              filter, 
+              max: 1, 
+              time: 15000, 
+              errors: ['time'] 
+            });
             
-            await triviaMessage.reply({ embeds: [successEmbed] });
-          } else {
-            const wrongEmbed = new EmbedBuilder()
+            const userAnswer = collected.first()?.content.toUpperCase();
+            
+            if (userAnswer === correctLetter) {
+              const successEmbed = new EmbedBuilder()
+                .setColor(0x57F287)
+                .setTitle('Correct Answer!')
+                .setDescription(`That's right! The answer was: **${correctAnswer}**`);
+              
+              await triviaMessage.reply({ embeds: [successEmbed] });
+            } else {
+              const wrongEmbed = new EmbedBuilder()
+                .setColor(0xED4245)
+                .setTitle('Wrong Answer!')
+                .setDescription(`The correct answer was: **${correctLetter}: ${correctAnswer}**`);
+              
+              await triviaMessage.reply({ embeds: [wrongEmbed] });
+            }
+          } catch (e) {
+            // Time ran out
+            const timeoutEmbed = new EmbedBuilder()
               .setColor(0xED4245)
-              .setTitle('Wrong Answer!')
+              .setTitle('Time\'s Up!')
               .setDescription(`The correct answer was: **${correctLetter}: ${correctAnswer}**`);
             
-            await triviaMessage.reply({ embeds: [wrongEmbed] });
+            await triviaMessage.reply({ embeds: [timeoutEmbed] });
           }
-        } catch (e) {
-          // Time ran out
-          const timeoutEmbed = new EmbedBuilder()
-            .setColor(0xED4245)
-            .setTitle('Time\'s Up!')
-            .setDescription(`The correct answer was: **${correctLetter}: ${correctAnswer}**`);
-          
-          await triviaMessage.reply({ embeds: [timeoutEmbed] });
+        } else {
+          // Can't collect messages in this channel type
+          return message.reply("I couldn't collect your answer in this channel type.");
         }
       } catch (error) {
         console.error('Error fetching trivia:', error);
@@ -872,6 +887,13 @@ export const funCommands: Command[] = [
           return response.author.id === message.author.id && 
                  (response.content.length === 1 || response.content.toLowerCase() === 'quit');
         };
+        
+        // Only create collector for valid channel types
+        if (message.channel.type !== ChannelType.GuildText && 
+            message.channel.type !== ChannelType.DM &&
+            message.channel.type !== ChannelType.GuildPublicThread) {
+          return message.reply("I can't play hangman in this channel type.");
+        }
         
         const collector = message.channel.createMessageCollector({ filter, time: 60000 * 3 }); // 3 minutes
         
