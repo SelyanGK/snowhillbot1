@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --background: 0 0% 100%;
+    --foreground: 20 14.3% 4.1%;
+    --muted: 60 4.8% 95.9%;
+    --muted-foreground: 25 5.3% 44.7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14.3% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14.3% 4.1%;
+    --border: 20 5.9% 90%;
+    --input: 20 5.9% 90%;
+    --primary: 207 90% 54%;
+    --primary-foreground: 211 100% 99%;
+    --secondary: 60 4.8% 95.9%;
+    --secondary-foreground: 24 9.8% 10%;
+    --accent: 60 4.8% 95.9%;
+    --accent-foreground: 24 9.8% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 60 9.1% 97.8%;
+    --ring: 20 14.3% 4.1%;
+    --radius: 0.5rem;
+
+    /* Discord theme colors */
+    --discord-blurple: 235 85.6% 64.7%;
+    --discord-light-purple: 227 58% 65%;
+    --discord-bg: 220 7.7% 22.9%;
+    --discord-dark-surface: 220 6.4% 21.8%;
+    --discord-darker-surface: 210 3.7% 13.9%;
+    --discord-text: 220 13% 90.6%;
+    --discord-success: 142 76.2% 69.4%;
+    --discord-danger: 359 69.5% 58.6%;
+    --discord-warning: 60 100% 65.1%;
+}
+
+.dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --primary: 207 90% 54%;
+    --primary-foreground: 211 100% 99%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --ring: 240 4.9% 83.9%;
+    --radius: 0.5rem;
+
+    /* Discord theme colors in dark mode */
+    --discord-blurple: 235 85.6% 64.7%;
+    --discord-light-purple: 227 58% 65%;
+    --discord-bg: 220 7.7% 22.9%;
+    --discord-dark-surface: 220 6.4% 21.8%;
+    --discord-darker-surface: 210 3.7% 13.9%;
+    --discord-text: 220 13% 90.6%;
+    --discord-success: 142 76.2% 69.4%;
+    --discord-danger: 359 69.5% 58.6%;
+    --discord-warning: 60 100% 65.1%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-[#36393F] text-[#DCDDDE];
+  }
+}
+
+/* Discord theme utility classes */
+.bg-discord-blurple {
+  background-color: hsl(var(--discord-blurple));
+}
+
+.bg-discord-light-purple {
+  background-color: hsl(var(--discord-light-purple));
+}
+
+.bg-discord-bg {
+  background-color: hsl(var(--discord-bg));
+}
+
+.bg-discord-dark-surface {
+  background-color: hsl(var(--discord-dark-surface));
+}
+
+.bg-discord-darker-surface {
+  background-color: hsl(var(--discord-darker-surface));
+}
+
+.text-discord-text {
+  color: hsl(var(--discord-text));
+}
+
+.text-discord-blurple {
+  color: hsl(var(--discord-blurple));
+}
+
+.text-discord-success {
+  color: hsl(var(--discord-success));
+}
+
+.text-discord-danger {
+  color: hsl(var(--discord-danger));
+}
+
+.text-discord-warning {
+  color: hsl(var(--discord-warning));
+}
+
+.border-discord-blurple {
+  border-color: hsl(var(--discord-blurple));
+}
+
+.hover\:bg-discord-bg:hover {
+  background-color: hsl(var(--discord-bg));
+}
+
+.font-heading {
+  font-family: 'Outfit', sans-serif;
+}
