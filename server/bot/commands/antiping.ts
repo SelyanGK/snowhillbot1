@@ -46,13 +46,31 @@ export const antipingCommands: Command[] = [
           .setTitle('Anti-Ping Configuration')
           .addFields(
             { name: 'Status', value: server.antiPingEnabled ? 'Enabled ✅' : 'Disabled ❌', inline: true },
-            { name: 'Punishment', value: server.antiPingPunishment ? server.antiPingPunishment.charAt(0).toUpperCase() + server.antiPingPunishment.slice(1) : 'Warn', inline: true },
-            { name: 'Protected Roles', value: server.antiPingProtectedRoles && server.antiPingProtectedRoles.length ? 
-              server.antiPingProtectedRoles.map(id => `<@&${id}>`).join(', ') : 'None' },
-            { name: 'Bypass Roles', value: server.antiPingBypassRoles && server.antiPingBypassRoles.length ? 
-              server.antiPingBypassRoles.map(id => `<@&${id}>`).join(', ') : 'None' },
-            { name: 'Excluded Roles', value: server.antiPingExcludedRoles && server.antiPingExcludedRoles.length ? 
-              server.antiPingExcludedRoles.map(id => `<@&${id}>`).join(', ') : 'None' },
+            { 
+              name: 'Punishment', 
+              value: server.antiPingPunishment ? 
+                server.antiPingPunishment.charAt(0).toUpperCase() + server.antiPingPunishment.slice(1) : 
+                'Warn', 
+              inline: true 
+            },
+            { 
+              name: 'Protected Roles', 
+              value: server.antiPingProtectedRoles && server.antiPingProtectedRoles.length ? 
+                server.antiPingProtectedRoles.map(id => `<@&${id}>`).join(', ') : 
+                'None' 
+            },
+            { 
+              name: 'Bypass Roles', 
+              value: server.antiPingBypassRoles && server.antiPingBypassRoles.length ? 
+                server.antiPingBypassRoles.map(id => `<@&${id}>`).join(', ') : 
+                'None' 
+            },
+            { 
+              name: 'Excluded Roles', 
+              value: server.antiPingExcludedRoles && server.antiPingExcludedRoles.length ? 
+                server.antiPingExcludedRoles.map(id => `<@&${id}>`).join(', ') : 
+                'None' 
+            },
             { name: 'Commands', value: [
               `\`${getCommandPrefix(message)}antiping [on/off]\` - Toggle anti-ping protection`,
               `\`${getCommandPrefix(message)}antiping protect @role\` - Add a role to protected list`,
@@ -129,7 +147,6 @@ export const antipingCommands: Command[] = [
           // Add role to protected list
           const updatedRoles = [...protectedRoles, role.id];
           // Store the new list in the database
-          // We can update the schema later - for now update through direct SQL or API calls
           await storage.updateServerCustomField(message.guild.id, 'antiPingProtectedRoles', updatedRoles);
 
           const embed = new EmbedBuilder()
@@ -159,7 +176,7 @@ export const antipingCommands: Command[] = [
 
           // Add role to bypass list
           const updatedRoles = [...bypassRoles, role.id];
-          await storage.updateServer(message.guild.id, { antiPingBypassRoles: updatedRoles });
+          await storage.updateServerCustomField(message.guild.id, 'antiPingBypassRoles', updatedRoles);
 
           const embed = new EmbedBuilder()
             .setColor(0xFEE75C)
@@ -178,13 +195,16 @@ export const antipingCommands: Command[] = [
             return message.reply('Please mention a role to exclude from anti-ping protection.');
           }
 
+          // Initialize excluded roles array if null
+          const excludedRolesArray = server.antiPingExcludedRoles || [];
+          
           // Check if role is already excluded
-          if (server.antiPingExcludedRoles.includes(role.id)) {
+          if (excludedRolesArray.includes(role.id)) {
             return message.reply(`The role <@&${role.id}> is already excluded from anti-ping protection.`);
           }
 
           // Add role to excluded list
-          const excludedRoles = [...server.antiPingExcludedRoles, role.id];
+          const excludedRoles = [...excludedRolesArray, role.id];
           server = await storage.updateServer(message.guild.id, { antiPingExcludedRoles: excludedRoles });
 
           const embed = new EmbedBuilder()
@@ -204,13 +224,16 @@ export const antipingCommands: Command[] = [
             return message.reply('Please mention a role to remove from the exclusion list.');
           }
 
+          // Initialize excluded roles array if null
+          const excludedRolesArray = server.antiPingExcludedRoles || [];
+          
           // Check if role is even excluded
-          if (!server.antiPingExcludedRoles.includes(role.id)) {
+          if (!excludedRolesArray.includes(role.id)) {
             return message.reply(`The role <@&${role.id}> is not excluded from anti-ping protection.`);
           }
 
           // Remove role from excluded list
-          const excludedRoles = server.antiPingExcludedRoles.filter(id => id !== role.id);
+          const excludedRoles = excludedRolesArray.filter(id => id !== role.id);
           server = await storage.updateServer(message.guild.id, { antiPingExcludedRoles: excludedRoles });
 
           const embed = new EmbedBuilder()
@@ -256,7 +279,7 @@ export const antipingCommands: Command[] = [
         server = await storage.createServer({
           id: message.guild.id,
           name: message.guild.name,
-          prefix: '!', // Default prefix
+          prefix: '+', // Default prefix set to + as requested
           antiPingEnabled: false,
           antiPingExcludedRoles: [],
           antiPingPunishment: 'warn'
@@ -265,13 +288,16 @@ export const antipingCommands: Command[] = [
 
       // No arguments - display current configuration
       if (!args.length) {
+        const punishment = server.antiPingPunishment || 'warn';
+        const excludedRoles = server.antiPingExcludedRoles || [];
+        
         const embed = new EmbedBuilder()
           .setColor(0xFEE75C)
           .setTitle('Anti-Ping Configuration')
           .addFields(
             { name: 'Status', value: server.antiPingEnabled ? 'Enabled ✅' : 'Disabled ❌', inline: true },
-            { name: 'Punishment', value: server.antiPingPunishment.charAt(0).toUpperCase() + server.antiPingPunishment.slice(1), inline: true },
-            { name: 'Excluded Roles', value: server.antiPingExcludedRoles.length ? server.antiPingExcludedRoles.map(id => `<@&${id}>`).join(', ') : 'None' },
+            { name: 'Punishment', value: punishment.charAt(0).toUpperCase() + punishment.slice(1), inline: true },
+            { name: 'Excluded Roles', value: excludedRoles.length ? excludedRoles.map(id => `<@&${id}>`).join(', ') : 'None' },
             { name: 'Commands', value: [
               `\`${getCommandPrefix(message)}antiping [on/off]\` - Toggle anti-ping protection`,
               `\`${getCommandPrefix(message)}antipingconfig punishment [warn/timeout/kick/ban]\` - Set punishment type`,
@@ -320,13 +346,16 @@ export const antipingCommands: Command[] = [
             return message.reply('Please mention a role to exclude from anti-ping protection.');
           }
 
+          // Initialize excluded roles array if null
+          const excludedRolesArray = server.antiPingExcludedRoles || [];
+          
           // Check if role is already excluded
-          if (server.antiPingExcludedRoles.includes(role.id)) {
+          if (excludedRolesArray.includes(role.id)) {
             return message.reply(`The role <@&${role.id}> is already excluded from anti-ping protection.`);
           }
 
           // Add role to excluded list
-          const excludedRoles = [...server.antiPingExcludedRoles, role.id];
+          const excludedRoles = [...excludedRolesArray, role.id];
           server = await storage.updateServer(message.guild.id, { antiPingExcludedRoles: excludedRoles });
 
           const embed = new EmbedBuilder()
@@ -346,13 +375,16 @@ export const antipingCommands: Command[] = [
             return message.reply('Please mention a role to remove from the exclusion list.');
           }
 
+          // Initialize excluded roles array if null
+          const excludedRolesArray = server.antiPingExcludedRoles || [];
+          
           // Check if role is even excluded
-          if (!server.antiPingExcludedRoles.includes(role.id)) {
+          if (!excludedRolesArray.includes(role.id)) {
             return message.reply(`The role <@&${role.id}> is not excluded from anti-ping protection.`);
           }
 
           // Remove role from excluded list
-          const excludedRoles = server.antiPingExcludedRoles.filter(id => id !== role.id);
+          const excludedRoles = excludedRolesArray.filter(id => id !== role.id);
           server = await storage.updateServer(message.guild.id, { antiPingExcludedRoles: excludedRoles });
 
           const embed = new EmbedBuilder()
@@ -401,67 +433,44 @@ export const antipingCommands: Command[] = [
       const existingBlock = await storage.getPingBlockedUser(message.guild.id, user.id);
       
       if (existingBlock) {
-        return message.reply(`${user.tag} is already blocked from pinging others in this server.`);
+        return message.reply(`<@${user.id}> is already blocked from pinging others.`);
       }
 
-      // Extract reason if provided
-      const reason = args.slice(1).join(' ') || 'No reason provided';
+      // Get reason (optional)
+      const reason = args.slice(1).join(' ') || null;
 
-      try {
-        // Add user to ping blocked list
-        await storage.createPingBlockedUser({
-          serverId: message.guild.id,
-          userId: user.id,
-          blockedBy: message.author.id,
-          reason
-        });
+      // Add user to ping blocked list
+      await storage.createPingBlockedUser({
+        serverId: message.guild.id,
+        userId: user.id,
+        blockedBy: message.author.id,
+        reason
+      });
 
-        // Record moderation action
-        incrementModerationActions();
-        
-        // Log activity
-        await storage.createActivityLog({
-          serverId: message.guild.id,
-          userId: message.author.id,
-          username: message.author.tag,
-          command: `pingblock ${user.tag}`
-        });
+      // Log activity
+      await storage.createActivityLog({
+        serverId: message.guild.id,
+        userId: message.author.id,
+        username: message.author.tag,
+        command: `pingblock ${user.tag}`
+      });
 
-        // Send DM to user
-        try {
-          const dmEmbed = new EmbedBuilder()
-            .setColor(0xFEE75C)
-            .setTitle('Ping Block Notice')
-            .setDescription(`You have been blocked from pinging users in **${message.guild.name}**.`)
-            .addFields(
-              { name: 'Reason', value: reason },
-              { name: 'Blocked By', value: message.author.tag }
-            )
-            .setFooter({ text: 'If you believe this is a mistake, please contact a server moderator.' })
-            .setTimestamp();
+      // Increment moderation actions
+      incrementModerationActions();
 
-          await user.send({ embeds: [dmEmbed] });
-        } catch (dmError) {
-          // Ignore if can't send DM
-        }
+      // Create success embed
+      const embed = new EmbedBuilder()
+        .setColor(0xFEE75C)
+        .setTitle('User Blocked from Pinging')
+        .setDescription(`<@${user.id}> has been blocked from pinging others in this server.`)
+        .addFields(
+          { name: 'Blocked by', value: `<@${message.author.id}>`, inline: true },
+          { name: 'Reason', value: reason || 'No reason provided', inline: true }
+        )
+        .setFooter({ text: `ID: ${user.id}` })
+        .setTimestamp();
 
-        // Send confirmation
-        const embed = new EmbedBuilder()
-          .setColor(0xFEE75C)
-          .setTitle('User Ping Blocked')
-          .setDescription(`${user.tag} has been blocked from pinging users in this server.`)
-          .addFields(
-            { name: 'Reason', value: reason },
-            { name: 'Moderator', value: message.author.tag }
-          )
-          .setFooter({ text: `Use ${getCommandPrefix(message)}pingunblock to remove this restriction` })
-          .setTimestamp();
-
-        return message.reply({ embeds: [embed] });
-      } catch (error) {
-        console.error('Error blocking user pings:', error);
-        return message.reply('An error occurred while trying to block the user from pinging.');
-      }
+      return message.reply({ embeds: [embed] });
     }
   },
 
@@ -470,7 +479,6 @@ export const antipingCommands: Command[] = [
     name: 'pingunblock',
     description: 'Unblocks pings from a previously blocked user',
     usage: '+pingunblock [@user]',
-    aliases: ['unpingblock'],
     category: CommandCategory.ANTIPING,
     cooldown: 3,
     requiredPermissions: [PermissionsBitField.Flags.ModerateMembers],
@@ -491,74 +499,47 @@ export const antipingCommands: Command[] = [
         return message.reply('Please mention a user to unblock pings from.');
       }
 
-      // Check if user is actually blocked
+      // Check if user is blocked
       const existingBlock = await storage.getPingBlockedUser(message.guild.id, user.id);
       
       if (!existingBlock) {
-        return message.reply(`${user.tag} is not blocked from pinging users in this server.`);
+        return message.reply(`<@${user.id}> is not currently blocked from pinging others.`);
       }
 
-      try {
-        // Remove user from ping blocked list
-        const success = await storage.deletePingBlockedUser(message.guild.id, user.id);
-        
-        if (!success) {
-          return message.reply('Failed to unblock user. Please try again.');
-        }
+      // Remove user from ping blocked list
+      await storage.deletePingBlockedUser(message.guild.id, user.id);
 
-        // Record moderation action
-        incrementModerationActions();
-        
-        // Log activity
-        await storage.createActivityLog({
-          serverId: message.guild.id,
-          userId: message.author.id,
-          username: message.author.tag,
-          command: `pingunblock ${user.tag}`
-        });
+      // Log activity
+      await storage.createActivityLog({
+        serverId: message.guild.id,
+        userId: message.author.id,
+        username: message.author.tag,
+        command: `pingunblock ${user.tag}`
+      });
 
-        // Send DM to user
-        try {
-          const dmEmbed = new EmbedBuilder()
-            .setColor(0x57F287)
-            .setTitle('Ping Block Removed')
-            .setDescription(`Your ping blocking in **${message.guild.name}** has been removed.`)
-            .addFields(
-              { name: 'Unblocked By', value: message.author.tag }
-            )
-            .setTimestamp();
+      // Create success embed
+      const embed = new EmbedBuilder()
+        .setColor(0x57F287)
+        .setTitle('User Unblocked from Pinging')
+        .setDescription(`<@${user.id}> can now ping others in this server again.`)
+        .addFields(
+          { name: 'Unblocked by', value: `<@${message.author.id}>`, inline: true }
+        )
+        .setFooter({ text: `ID: ${user.id}` })
+        .setTimestamp();
 
-          await user.send({ embeds: [dmEmbed] });
-        } catch (dmError) {
-          // Ignore if can't send DM
-        }
-
-        // Send confirmation
-        const embed = new EmbedBuilder()
-          .setColor(0x57F287)
-          .setTitle('User Ping Unblocked')
-          .setDescription(`${user.tag} is no longer blocked from pinging users in this server.`)
-          .addFields(
-            { name: 'Moderator', value: message.author.tag }
-          )
-          .setTimestamp();
-
-        return message.reply({ embeds: [embed] });
-      } catch (error) {
-        console.error('Error unblocking user pings:', error);
-        return message.reply('An error occurred while trying to unblock the user from pinging.');
-      }
+      return message.reply({ embeds: [embed] });
     }
   },
 
   // 5. Ping blocked list command
   {
     name: 'pingblocklist',
-    description: 'Lists all users blocked from pinging others',
+    description: 'Shows a list of users blocked from pinging',
     usage: '+pingblocklist',
-    aliases: ['blockedpings', 'listpingblocks'],
+    aliases: ['pingblocked'],
     category: CommandCategory.ANTIPING,
-    cooldown: 5,
+    cooldown: 3,
     requiredPermissions: [PermissionsBitField.Flags.ModerateMembers],
     execute: async (message) => {
       // Check permissions
@@ -570,251 +551,29 @@ export const antipingCommands: Command[] = [
         return message.reply('This command can only be used in a server.');
       }
 
-      try {
-        // Get list of ping blocked users
-        const blockedUsers = await storage.getPingBlockedUsers(message.guild.id);
-        
-        if (!blockedUsers.length) {
-          return message.reply('There are no users blocked from pinging in this server.');
-        }
+      // Get all blocked users for this server
+      const blockedUsers = await storage.getPingBlockedUsers(message.guild.id);
 
-        // Format blocked users list
-        let description = '';
-        
-        for (const blockedUser of blockedUsers) {
-          const userMention = `<@${blockedUser.userId}>`;
-          const blockedBy = `<@${blockedUser.blockedBy}>`;
-          const reason = blockedUser.reason || 'No reason provided';
-          const timestamp = blockedUser.timestamp.toUTCString();
-          
-          description += `**${userMention}**\n`;
-          description += `> Blocked by: ${blockedBy}\n`;
-          description += `> Reason: ${reason}\n`;
-          description += `> Date: ${timestamp}\n\n`;
-        }
-
-        // Create paginated embeds if necessary
-        if (description.length > 4000) {
-          description = description.substring(0, 4000) + '...\n\n*List truncated due to size limits*';
-        }
-
-        // Send embed
-        const embed = new EmbedBuilder()
-          .setColor(0xFEE75C)
-          .setTitle('Ping Blocked Users')
-          .setDescription(description)
-          .setFooter({ text: `Total: ${blockedUsers.length} blocked users • Requested by ${message.author.tag}` })
-          .setTimestamp();
-
-        return message.reply({ embeds: [embed] });
-      } catch (error) {
-        console.error('Error getting ping blocked users:', error);
-        return message.reply('An error occurred while trying to retrieve the list of ping blocked users.');
-      }
-    }
-  },
-
-  // 6. Anti-raid mode command
-  {
-    name: 'antiraid',
-    description: 'Enables anti-raid mode which includes strict ping protection',
-    usage: '+antiraid [on/off]',
-    category: CommandCategory.ANTIPING,
-    cooldown: 5,
-    requiredPermissions: [PermissionsBitField.Flags.ManageGuild],
-    execute: async (message, args) => {
-      // Check permissions
-      if (!message.member?.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
-        return message.reply('You need the Manage Server permission to use this command.');
+      if (!blockedUsers.length) {
+        return message.reply('There are no users currently blocked from pinging others in this server.');
       }
 
-      if (!message.guild) {
-        return message.reply('This command can only be used in a server.');
-      }
-
-      // Check for valid arguments
-      if (!args.length || !['on', 'off'].includes(args[0].toLowerCase())) {
-        return message.reply('Please specify whether to turn anti-raid mode `on` or `off`.');
-      }
-
-      const enable = args[0].toLowerCase() === 'on';
-
-      try {
-        // Enable anti-ping as part of anti-raid mode
-        let server = await storage.getServer(message.guild.id);
-        
-        if (server) {
-          // Update existing server with antiPingEnabled = true and set punishment to timeout
-          server = await storage.updateServer(message.guild.id, { 
-            antiPingEnabled: true,
-            antiPingPunishment: 'timeout'
-          });
-        } else {
-          // Create new server entry
-          server = await storage.createServer({
-            id: message.guild.id,
-            name: message.guild.name,
-            prefix: '!', // Default prefix
-            antiPingEnabled: true,
-            antiPingExcludedRoles: [],
-            antiPingPunishment: 'timeout'
-          });
-        }
-
-        // Record moderation action
-        incrementModerationActions();
-        
-        // Log activity
-        await storage.createActivityLog({
-          serverId: message.guild.id,
-          userId: message.author.id,
-          username: message.author.tag,
-          command: `antiraid ${enable ? 'on' : 'off'}`
-        });
-
-        if (enable) {
-          // Additionally update channel permissions to limit new member messages
-          // This would only be possible with proper permissions
-          // Here we could adjust slowmode for all channels, etc.
-          
-          // For this implementation, we'll just send a notification
-          const embed = new EmbedBuilder()
-            .setColor(0xED4245)
-            .setTitle('⚠️ Anti-Raid Mode Enabled ⚠️')
-            .setDescription('Anti-raid mode has been enabled for this server.')
-            .addFields(
-              { name: 'Protective Measures', value: [
-                '✅ **Anti-ping protection** enabled with stricter thresholds',
-                '✅ **Ping punishment** set to automatic timeout',
-                '❗ Consider manually enabling slowmode in busy channels',
-                '❗ Consider temporarily restricting new members\' permissions'
-              ].join('\n') },
-              { name: 'Duration', value: 'Anti-raid mode will stay active until manually disabled.' },
-              { name: 'Moderator', value: message.author.tag }
-            )
-            .setFooter({ text: `Use ${getCommandPrefix(message)}antiraid off to disable when the threat has passed` })
-            .setTimestamp();
-
-          return message.reply({ embeds: [embed] });
-        } else {
-          // Disable anti-raid mode
-          const embed = new EmbedBuilder()
-            .setColor(0x57F287)
-            .setTitle('Anti-Raid Mode Disabled')
-            .setDescription('Anti-raid mode has been disabled for this server.')
-            .addFields(
-              { name: 'Note', value: 'Anti-ping protection remains enabled, but with normal sensitivity.' },
-              { name: 'Moderator', value: message.author.tag }
-            )
-            .setFooter({ text: `You can use ${getCommandPrefix(message)}antiping off to completely disable ping protection` })
-            .setTimestamp();
-
-          return message.reply({ embeds: [embed] });
-        }
-      } catch (error) {
-        console.error('Error setting anti-raid mode:', error);
-        return message.reply('An error occurred while trying to update anti-raid settings.');
-      }
-    }
-  },
-
-  // 7. Pin-shield command
-  {
-    name: 'pingshield',
-    description: 'Enables personal ping shield to reduce notifications',
-    usage: '+pingshield [on/off]',
-    aliases: ['shieldping', 'noping'],
-    category: CommandCategory.ANTIPING,
-    cooldown: 10,
-    requiredPermissions: [],
-    execute: async (message, args) => {
-      if (!message.guild) {
-        return message.reply('This command can only be used in a server.');
-      }
-
-      // Check for valid arguments
-      if (!args.length || !['on', 'off'].includes(args[0].toLowerCase())) {
-        return message.reply('Please specify whether to turn your ping shield `on` or `off`.');
-      }
-
-      const enable = args[0].toLowerCase() === 'on';
-
-      try {
-        // In a full implementation, you would store this in a database
-        // For this prototype, we'll just reply with a message
-        if (enable) {
-          const embed = new EmbedBuilder()
-            .setColor(0x5865F2)
-            .setTitle('Personal Ping Shield Enabled')
-            .setDescription(`${message.author.tag}, your personal ping shield has been enabled.`)
-            .addFields(
-              { name: 'What this means', value: [
-                '• You will receive fewer ping notifications',
-                '• Only direct mentions will trigger notifications',
-                '• Role pings will be suppressed (but still visible)',
-                '• This setting applies to your account on this server only'
-              ].join('\n') },
-              { name: 'Status', value: '✅ Active' }
-            )
-            .setFooter({ text: `Use ${getCommandPrefix(message)}pingshield off to disable this feature` });
-
-          return message.reply({ embeds: [embed] });
-        } else {
-          const embed = new EmbedBuilder()
-            .setColor(0x5865F2)
-            .setTitle('Personal Ping Shield Disabled')
-            .setDescription(`${message.author.tag}, your personal ping shield has been disabled.`)
-            .addFields(
-              { name: 'What this means', value: 'You will now receive all ping notifications as normal.' },
-              { name: 'Status', value: '❌ Inactive' }
-            )
-            .setFooter({ text: `Use ${getCommandPrefix(message)}pingshield on to enable this feature again` });
-
-          return message.reply({ embeds: [embed] });
-        }
-      } catch (error) {
-        console.error('Error toggling ping shield:', error);
-        return message.reply('An error occurred while trying to update your ping shield settings.');
-      }
-    }
-  },
-
-  // 8. Ping stats command
-  {
-    name: 'pingstats',
-    description: 'Shows statistics about pings in the server',
-    usage: '+pingstats [optional: @user]',
-    category: CommandCategory.ANTIPING,
-    cooldown: 10,
-    requiredPermissions: [],
-    execute: async (message, args) => {
-      if (!message.guild) {
-        return message.reply('This command can only be used in a server.');
-      }
-
-      const user = message.mentions.users.first() || message.author;
-      
-      // In a full implementation, you would query a database for actual stats
-      // For this prototype, we'll generate some random stats
-      
-      // Calculate random stats
-      const randomPingsReceived = Math.floor(Math.random() * 100) + 50;
-      const randomPingsSent = Math.floor(Math.random() * 50) + 20;
-      const randomMassPings = Math.floor(Math.random() * 5);
-      const lastPinged = new Date(Date.now() - Math.floor(Math.random() * 86400000)).toUTCString();
-      
+      // Create list embed
       const embed = new EmbedBuilder()
-        .setColor(0x5865F2)
-        .setTitle(`Ping Statistics for ${user.tag}`)
-        .setThumbnail(user.displayAvatarURL())
+        .setColor(0xFEE75C)
+        .setTitle('Users Blocked from Pinging')
+        .setDescription('The following users are prevented from pinging others:')
         .addFields(
-          { name: 'Pings Received', value: randomPingsReceived.toString(), inline: true },
-          { name: 'Pings Sent', value: randomPingsSent.toString(), inline: true },
-          { name: 'Mass Pings Detected', value: randomMassPings.toString(), inline: true },
-          { name: 'Last Pinged', value: lastPinged, inline: false },
-          { name: 'Note', value: 'This feature uses simulated data. In a real implementation, actual ping data would be tracked and displayed.' }
+          blockedUsers.map(user => ({
+            name: `User ID: ${user.userId}`,
+            value: [
+              `Blocked by: <@${user.blockedBy}>`,
+              `Blocked on: ${user.timestamp.toLocaleString()}`,
+              `Reason: ${user.reason || 'No reason provided'}`
+            ].join('\n')
+          }))
         )
-        .setFooter({ text: `Requested by ${message.author.tag}` })
+        .setFooter({ text: `Total blocked: ${blockedUsers.length}` })
         .setTimestamp();
 
       return message.reply({ embeds: [embed] });
