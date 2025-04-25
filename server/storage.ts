@@ -242,14 +242,22 @@ export class MemStorage implements IStorage {
 
   async createPingBlockedUser(insertBlockedUser: InsertPingBlockedUser): Promise<PingBlockedUser> {
     const id = this.pingBlockedUserIdCounter++;
+    
+    // The reason field needs to be explicitly handled to match the type
+    let reason: string | null = null;
+    if (typeof insertBlockedUser.reason === 'string') {
+      reason = insertBlockedUser.reason;
+    }
+    
     const blockedUser: PingBlockedUser = {
       id,
       userId: insertBlockedUser.userId,
       serverId: insertBlockedUser.serverId,
       blockedBy: insertBlockedUser.blockedBy,
-      reason: insertBlockedUser.reason || null,
-      timestamp: new Date(),
+      reason,
+      timestamp: new Date()
     };
+    
     this.pingBlockedUsers.push(blockedUser);
     return blockedUser;
   }
@@ -299,20 +307,23 @@ export class MemStorage implements IStorage {
   // Giveaway methods
   async createGiveaway(giveaway: InsertGiveaway): Promise<Giveaway> {
     const id = this.giveawayIdCounter++;
-    // Create a properly typed Giveaway object
+    
+    // Create a properly typed Giveaway object with all required fields
     const newGiveaway: Giveaway = {
       id,
       serverId: giveaway.serverId,
-      channelId: giveaway.channelId,
+      channelId: giveaway.channelId, 
       messageId: giveaway.messageId,
       prize: giveaway.prize,
-      winnerCount: giveaway.winnerCount || 1, // Default to 1 winner if not specified
+      // TypeScript knows these could be undefined, so provide defaults
+      winnerCount: typeof giveaway.winnerCount === 'number' ? giveaway.winnerCount : 1,
       hostId: giveaway.hostId,
-      endTime: giveaway.endTime,
+      endTime: giveaway.endTime, 
       hasEnded: false,
       requiredRoleId: giveaway.requiredRoleId || null,
       createdAt: new Date()
     };
+    
     this.giveaways.set(id, newGiveaway);
     return newGiveaway;
   }

@@ -7,7 +7,7 @@ import { CommandCategory } from '@shared/schema';
 import { formatDuration, getCommandPrefix, getUserPermissionLevel } from '../utils';
 import { storage } from '../../storage';
 
-export const antipingCommands = [
+export default [
   // 1. Main anti-ping command
   {
     name: 'antiping',
