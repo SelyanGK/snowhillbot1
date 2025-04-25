@@ -299,10 +299,18 @@ export class MemStorage implements IStorage {
   // Giveaway methods
   async createGiveaway(giveaway: InsertGiveaway): Promise<Giveaway> {
     const id = this.giveawayIdCounter++;
+    // Create a properly typed Giveaway object
     const newGiveaway: Giveaway = {
-      ...giveaway,
       id,
+      serverId: giveaway.serverId,
+      channelId: giveaway.channelId,
+      messageId: giveaway.messageId,
+      prize: giveaway.prize,
+      winnerCount: giveaway.winnerCount || 1, // Default to 1 winner if not specified
+      hostId: giveaway.hostId,
+      endTime: giveaway.endTime,
       hasEnded: false,
+      requiredRoleId: giveaway.requiredRoleId || null,
       createdAt: new Date()
     };
     this.giveaways.set(id, newGiveaway);

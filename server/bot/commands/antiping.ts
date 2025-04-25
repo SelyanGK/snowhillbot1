@@ -166,8 +166,11 @@ export const antipingCommands: Command[] = [
             return message.reply('Please mention a role to add to the bypass list.');
           }
 
-          // Initialize the array if it doesn't exist
-          const bypassRoles = server.antiPingBypassRoles || [];
+          // Get the current bypass roles using the same approach as protected roles
+          const server_any = server as any;
+          const bypassRoles = Array.isArray(server_any.antiPingBypassRoles) 
+            ? server_any.antiPingBypassRoles 
+            : [];
           
           // Check if role is already on bypass list
           if (bypassRoles.includes(role.id)) {
