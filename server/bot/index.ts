@@ -3,6 +3,7 @@ import { loadCommands } from './commands';
 import { setupEvents } from './events';
 import { setupSlashCommands } from './slash-commands';
 import { deploySlashCommands } from './deploy-commands';
+import { initializeGiveaways } from './commands/giveaway';
 import { storage } from '../storage';
 import { log } from '../vite';
 
@@ -59,6 +60,10 @@ export async function initBot() {
     
     // Set bot activity
     client.user?.setActivity('+help | .gg/snowhill', { type: 3 }); // 3 = Watching
+    
+    // Initialize active giveaways
+    await initializeGiveaways(client);
+    log('Giveaway system initialized', 'bot');
 
     return client;
   } catch (error) {

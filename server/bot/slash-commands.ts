@@ -11,27 +11,63 @@ import { performance } from 'perf_hooks';
 // This function is declared later in the file - no need to have it at the top level
 // Will be removed here to avoid confusion
 
+import { handleGiveawayButtonClick } from './commands/giveaway';
+
 export function setupSlashCommands(client: Client) {
   client.on('interactionCreate', async (interaction: Interaction) => {
-    if (!interaction.isChatInputCommand()) return;
-    
-    try {
-      await handleSlashCommand(interaction);
-    } catch (error) {
-      console.error('Error handling slash command:', error);
-      
-      // Respond with error if the interaction hasn't been replied to yet
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({
-          content: 'There was an error executing this command.',
-          ephemeral: true
-        });
-      } else {
-        await interaction.reply({
-          content: 'There was an error executing this command.',
-          ephemeral: true
-        });
+    // Handle slash commands
+    if (interaction.isChatInputCommand()) {
+      try {
+        await handleSlashCommand(interaction);
+      } catch (error) {
+        console.error('Error handling slash command:', error);
+        
+        // Respond with error if the interaction hasn't been replied to yet
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp({
+            content: 'There was an error executing this command.',
+            ephemeral: true
+          });
+        } else {
+          await interaction.reply({
+            content: 'There was an error executing this command.',
+            ephemeral: true
+          });
+        }
       }
+      return;
+    }
+    
+    // Handle button interactions
+    if (interaction.isButton()) {
+      // Check if it's a giveaway button
+      const customId = interaction.customId;
+      if (customId.startsWith('giveaway_enter_')) {
+        const giveawayId = parseInt(customId.replace('giveaway_enter_', ''), 10);
+        if (!isNaN(giveawayId)) {
+          try {
+            await handleGiveawayButtonClick(interaction, giveawayId);
+          } catch (error) {
+            console.error('Error handling giveaway button:', error);
+            try {
+              if (interaction.replied || interaction.deferred) {
+                await interaction.followUp({
+                  content: 'There was an error processing your request.',
+                  ephemeral: true
+                });
+              } else {
+                await interaction.reply({
+                  content: 'There was an error processing your request.',
+                  ephemeral: true
+                });
+              }
+            } catch (replyError) {
+              console.error('Error replying to interaction:', replyError);
+            }
+          }
+        }
+      }
+      return;
     }
   });
 }
@@ -218,6 +254,20 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     case CommandCategory.ANTIPING:
       // Use the original text command implementation
       await advancedImplementationNeeded();
+      break;
+      
+    case CommandCategory.GIVEAWAY:
+      switch (command.name) {
+        case 'gcreate':
+        case 'gcreategiveaway':
+        case 'greroll':
+        case 'gend':
+          // Use the original text command implementation
+          await advancedImplementationNeeded();
+          break;
+        default:
+          await advancedImplementationNeeded();
+      }
       break;
       
     case CommandCategory.UTILITY:

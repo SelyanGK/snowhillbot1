@@ -96,6 +96,58 @@ export async function deploySlashCommands(clientId: string, token: string) {
                 .setRequired(true));
           }
           break;
+        
+        case CommandCategory.GIVEAWAY:
+          if (cmd.name === 'gcreate' || cmd.name === 'gcreategiveaway') {
+            builder.addChannelOption(option =>
+              option.setName('channel')
+                .setDescription('The channel to post the giveaway in')
+                .setRequired(true));
+                
+            builder.addStringOption(option =>
+              option.setName('duration')
+                .setDescription('The duration of the giveaway (e.g. 1h, 1d, 1w)')
+                .setRequired(true));
+                
+            builder.addStringOption(option =>
+              option.setName('prize')
+                .setDescription('The prize for the giveaway')
+                .setRequired(true));
+                
+            builder.addIntegerOption(option =>
+              option.setName('winners')
+                .setDescription('The number of winners')
+                .setRequired(false)
+                .setMinValue(1)
+                .setMaxValue(10));
+                
+            builder.addRoleOption(option =>
+              option.setName('required-role')
+                .setDescription('Role required to enter the giveaway')
+                .setRequired(false));
+          }
+          
+          if (cmd.name === 'gend') {
+            builder.addIntegerOption(option =>
+              option.setName('giveaway-id')
+                .setDescription('The ID of the giveaway to end')
+                .setRequired(true));
+          }
+          
+          if (cmd.name === 'greroll') {
+            builder.addIntegerOption(option =>
+              option.setName('giveaway-id')
+                .setDescription('The ID of the giveaway to reroll')
+                .setRequired(true));
+                
+            builder.addIntegerOption(option =>
+              option.setName('count')
+                .setDescription('Number of winners to reroll')
+                .setRequired(false)
+                .setMinValue(1)
+                .setMaxValue(10));
+          }
+          break;
           
         case CommandCategory.ANTIPING:
           if (cmd.name === 'antiping') {
