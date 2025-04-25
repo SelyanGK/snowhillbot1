@@ -35,9 +35,7 @@ export const antipingCommands: Command[] = [
           prefix: '+', // Set default prefix to + as requested
           antiPingEnabled: false,
           antiPingExcludedRoles: [],
-          antiPingPunishment: 'warn',
-          antiPingProtectedRoles: [],
-          antiPingBypassRoles: []
+          antiPingPunishment: 'warn'
         });
       }
 
@@ -116,8 +114,12 @@ export const antipingCommands: Command[] = [
             return message.reply('Please mention a role to protect from pings.');
           }
 
-          // Initialize the array if it doesn't exist
-          const protectedRoles = server.antiPingProtectedRoles || [];
+          // Get the current protected roles (which may not exist in the schema yet)
+          // Using any to bypass type checking temporarily
+          const server_any = server as any;
+          const protectedRoles = Array.isArray(server_any.antiPingProtectedRoles) 
+            ? server_any.antiPingProtectedRoles 
+            : [];
           
           // Check if role is already protected
           if (protectedRoles.includes(role.id)) {
@@ -126,7 +128,9 @@ export const antipingCommands: Command[] = [
 
           // Add role to protected list
           const updatedRoles = [...protectedRoles, role.id];
-          await storage.updateServer(message.guild.id, { antiPingProtectedRoles: updatedRoles });
+          // Store the new list in the database
+          // We can update the schema later - for now update through direct SQL or API calls
+          await storage.updateServerCustomField(message.guild.id, 'antiPingProtectedRoles', updatedRoles);
 
           const embed = new EmbedBuilder()
             .setColor(0xFEE75C)

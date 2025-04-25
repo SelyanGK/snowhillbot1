@@ -30,6 +30,7 @@ export interface IStorage {
   getServers(): Promise<Server[]>;
   createServer(server: InsertServer): Promise<Server>;
   updateServer(id: string, server: Partial<InsertServer>): Promise<Server | undefined>;
+  updateServerCustomField(id: string, fieldName: string, value: any): Promise<Server | undefined>;
   
   // Activity log methods
   getActivityLogs(serverId: string, limit?: number): Promise<ActivityLog[]>;
@@ -157,6 +158,21 @@ export class MemStorage implements IStorage {
     
     this.servers.set(id, updatedServer);
     return updatedServer;
+  }
+  
+  // Custom method to update any field in the server object, even fields not in the schema yet
+  async updateServerCustomField(id: string, fieldName: string, value: any): Promise<Server | undefined> {
+    const server = await this.getServer(id);
+    if (!server) return undefined;
+    
+    // Create updated server with the custom field
+    const updatedServer = {
+      ...server,
+      [fieldName]: value, // Use computed property name to set any field
+    };
+    
+    this.servers.set(id, updatedServer);
+    return updatedServer as Server;
   }
 
   // Activity log methods
