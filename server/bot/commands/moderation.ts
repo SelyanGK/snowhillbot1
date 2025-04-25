@@ -1054,7 +1054,7 @@ export const moderationCommands: Command[] = [
   {
     name: 'role',
     description: 'Adds or removes a role from a user',
-    usage: '+role <@user> <@role>',
+    usage: '+role [@user] [@role]',
     category: CommandCategory.MODERATION,
     cooldown: 5,
     requiredPermissions: [PermissionsBitField.Flags.ManageRoles],
