@@ -38,12 +38,14 @@ export async function initBot() {
     setupEvents(client);
     setupSlashCommands(client);
 
-    // Connect to Discord
-    const token = process.env.DISCORD_BOT_TOKEN;
-    if (!token) {
-      throw new Error('DISCORD_BOT_TOKEN is required to start the bot');
-    }
-
+    // Connect to Discord using a plain text token
+    // IMPORTANT: Replace "YOUR_BOT_TOKEN_HERE" with your actual Discord bot token
+    // The token should be in the format: 123456789012345678.abc123.def456ghi789jkl012mno345pqr678stu9vwxyz
+    const token = "YOUR_BOT_TOKEN_HERE"; 
+    
+    // For development or testing purposes only!
+    // In production, consider using a more secure method to store your token
+    
     await client.login(token);
     log(`Bot logged in as ${client.user?.tag}`, 'bot');
     
