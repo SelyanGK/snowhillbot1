@@ -1,8 +1,9 @@
-import { Client, Interaction, CommandInteraction, ChatInputCommandInteraction } from 'discord.js';
+import { Client, Interaction, CommandInteraction, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { storage } from '../storage';
 import { log } from '../vite';
 import { incrementCommandsUsed, incrementModerationActions } from './index';
 import { CommandCategory } from '@shared/schema';
+import { performance } from 'perf_hooks';
 
 /**
  * Sets up slash command interaction handlers
@@ -128,216 +129,73 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
   const duration = interaction.options.getString('duration');
   const amount = interaction.options.getInteger('amount');
   
-  // Helper function for commands that need more advanced implementation
+  // Record start time for performance measurement
+  const start = performance.now();
+
+  // Create a mock Message object to pass to the original execute function
+  // This will allow us to reuse the exact same code for both text and slash commands
+  const mockMessage = {
+    author: interaction.user,
+    member: interaction.member,
+    channel: interaction.channel,
+    guild: interaction.guild,
+    client: interaction.client,
+    content: `/${command.name}`,
+    reply: async (content: any) => {
+      if (typeof content === 'string') {
+        return await interaction.replied 
+          ? interaction.followUp(content) 
+          : interaction.reply(content);
+      } else if (content.embeds) {
+        return await interaction.replied 
+          ? interaction.followUp({ embeds: content.embeds }) 
+          : interaction.reply({ embeds: content.embeds });
+      } else {
+        return await interaction.replied 
+          ? interaction.followUp(content) 
+          : interaction.reply(content);
+      }
+    },
+    // Add more methods/properties as needed
+    delete: async () => {
+      // Can't delete an interaction, so this is a no-op
+      return Promise.resolve();
+    }
+  };
+  
+  // Convert slash command options to text command args
+  const args: string[] = [];
+  
+  // Add each option to args to match text command format
+  if (user) args.push(user.id);
+  if (role) args.push(role.id);
+  if (channel) args.push(channel.id);
+  if (reason) args.push(reason);
+  if (message) args.push(message);
+  if (duration) args.push(duration);
+  if (amount !== null && amount !== undefined) args.push(amount.toString());
+  
+  // Helper function for commands that need more advanced implementation  
   const advancedImplementationNeeded = async () => {
-    await interaction.reply({
-      content: 'This command has advanced features that are available using the text command. Try using `+' + command.name + '` for full functionality.',
-      ephemeral: true
-    });
+    try {
+      // Attempt to use the original command's execute method
+      await command.execute(mockMessage, args, interaction.client);
+    } catch (error) {
+      console.error("Error executing command:", error);
+      await interaction.reply({
+        content: 'This command has advanced features that are available using the text command. Try using `+' + command.name + '` for full functionality.',
+        ephemeral: true
+      });
+    }
   };
   
   switch (command.category) {
     case CommandCategory.MODERATION:
       switch (command.name) {
         case 'kick':
-          if (!member) {
-            await interaction.editReply('You need to specify a user to kick.');
-            return;
-          }
-          
-          try {
-            // Try to send a DM before kicking
-            let dmSuccess = false;
-            try {
-              const dmEmbed = new EmbedBuilder()
-                .setColor(0xED4245)
-                .setTitle(`You've been kicked from ${interaction.guild.name}`)
-                .setDescription(`A moderator has taken action on your account.`)
-                .addFields(
-                  { name: 'Action', value: 'KICK' },
-                  { name: 'Reason', value: reason || 'No reason provided' },
-                  { name: 'Moderator', value: interaction.user.tag }
-                )
-                .setTimestamp();
-                
-              await member.send({ embeds: [dmEmbed] });
-              dmSuccess = true;
-            } catch (dmError) {
-              console.error('Could not DM user about kick:', dmError);
-              // Continue with the kick even if DM fails
-            }
-            
-            await member.kick(reason || 'No reason provided');
-            
-            // Create embed for success message
-            const successEmbed = new EmbedBuilder()
-              .setColor(0xED4245)
-              .setTitle('User Kicked')
-              .setDescription(`${member.user.tag} has been kicked from the server.`)
-              .addFields(
-                { name: 'Reason', value: reason || 'No reason provided' },
-                { name: 'Moderator', value: interaction.user.tag },
-                { name: 'DM Notification', value: dmSuccess ? '✅ User was notified via DM' : '❌ Could not DM user' }
-              )
-              .setTimestamp();
-              
-            await interaction.editReply({ embeds: [successEmbed] });
-            
-            // Log to mod-logs if the channel exists
-            const modLogsChannel = interaction.guild?.channels.cache.find(
-              (channel: any) => channel.name === 'mod-logs' && channel.isTextBased()
-            );
-            
-            if (modLogsChannel && modLogsChannel.isTextBased()) {
-              await modLogsChannel.send({ embeds: [successEmbed] });
-            }
-          } catch (error) {
-            await interaction.editReply(`Failed to kick ${member.user.tag}: ${error.message}`);
-          }
-          break;
-          
         case 'ban':
-          if (!member) {
-            await interaction.editReply('You need to specify a user to ban.');
-            return;
-          }
-          
-          try {
-            // Try to send a DM before banning
-            let dmSuccess = false;
-            try {
-              const dmEmbed = new EmbedBuilder()
-                .setColor(0xED4245)
-                .setTitle(`You've been banned from ${interaction.guild.name}`)
-                .setDescription(`A moderator has taken action on your account.`)
-                .addFields(
-                  { name: 'Action', value: 'BAN' },
-                  { name: 'Reason', value: reason || 'No reason provided' },
-                  { name: 'Moderator', value: interaction.user.tag },
-                  { name: 'Appeal', value: 'If you believe this action was in error, you may contact the server administrators.' }
-                )
-                .setTimestamp();
-                
-              await member.send({ embeds: [dmEmbed] });
-              dmSuccess = true;
-            } catch (dmError) {
-              console.error('Could not DM user about ban:', dmError);
-              // Continue with the ban even if DM fails
-            }
-            
-            await member.ban({ reason: reason || 'No reason provided' });
-            
-            // Create embed for success message
-            const successEmbed = new EmbedBuilder()
-              .setColor(0xED4245)
-              .setTitle('User Banned')
-              .setDescription(`${member.user.tag} has been banned from the server.`)
-              .addFields(
-                { name: 'Reason', value: reason || 'No reason provided' },
-                { name: 'Moderator', value: interaction.user.tag },
-                { name: 'DM Notification', value: dmSuccess ? '✅ User was notified via DM' : '❌ Could not DM user' }
-              )
-              .setTimestamp();
-              
-            await interaction.editReply({ embeds: [successEmbed] });
-            
-            // Log to mod-logs if the channel exists
-            const modLogsChannel = interaction.guild?.channels.cache.find(
-              (channel: any) => channel.name === 'mod-logs' && channel.isTextBased()
-            );
-            
-            if (modLogsChannel && modLogsChannel.isTextBased()) {
-              await modLogsChannel.send({ embeds: [successEmbed] });
-            }
-          } catch (error) {
-            await interaction.editReply(`Failed to ban ${member.user.tag}: ${error.message}`);
-          }
-          break;
-          
         case 'timeout':
         case 'mute':
-          if (!member) {
-            await interaction.editReply('You need to specify a user to timeout.');
-            return;
-          }
-          
-          // Parse duration
-          let timeoutDuration = 60 * 60 * 1000; // Default: 1 hour
-          if (duration) {
-            const match = duration.match(/^(\d+)([smhdw])$/);
-            if (match) {
-              const value = parseInt(match[1]);
-              const unit = match[2];
-              
-              switch (unit) {
-                case 's': timeoutDuration = value * 1000; break;
-                case 'm': timeoutDuration = value * 60 * 1000; break;
-                case 'h': timeoutDuration = value * 60 * 60 * 1000; break;
-                case 'd': timeoutDuration = value * 24 * 60 * 60 * 1000; break;
-                case 'w': timeoutDuration = value * 7 * 24 * 60 * 60 * 1000; break;
-              }
-              
-              // Max timeout is 28 days
-              if (timeoutDuration > 28 * 24 * 60 * 60 * 1000) {
-                timeoutDuration = 28 * 24 * 60 * 60 * 1000;
-              }
-            }
-          }
-          
-          try {
-            // Try to send a DM before timeout
-            let dmSuccess = false;
-            try {
-              const dmEmbed = new EmbedBuilder()
-                .setColor(0xED4245)
-                .setTitle(`You've been timed out in ${interaction.guild.name}`)
-                .setDescription(`A moderator has taken action on your account.`)
-                .addFields(
-                  { name: 'Action', value: 'TIMEOUT' },
-                  { name: 'Duration', value: formatDuration(timeoutDuration) },
-                  { name: 'Reason', value: reason || 'No reason provided' },
-                  { name: 'Moderator', value: interaction.user.tag },
-                  { name: 'Timeout Ends', value: `<t:${Math.floor((Date.now() + timeoutDuration) / 1000)}:R>` }
-                )
-                .setTimestamp();
-                
-              await member.send({ embeds: [dmEmbed] });
-              dmSuccess = true;
-            } catch (dmError) {
-              console.error('Could not DM user about timeout:', dmError);
-              // Continue with the timeout even if DM fails
-            }
-            
-            await member.timeout(timeoutDuration, reason || 'No reason provided');
-            
-            // Create embed for success message
-            const successEmbed = new EmbedBuilder()
-              .setColor(0xED4245)
-              .setTitle('User Timed Out')
-              .setDescription(`${member.user.tag} has been timed out for ${formatDuration(timeoutDuration)}.`)
-              .addFields(
-                { name: 'Reason', value: reason || 'No reason provided' },
-                { name: 'Moderator', value: interaction.user.tag },
-                { name: 'DM Notification', value: dmSuccess ? '✅ User was notified via DM' : '❌ Could not DM user' },
-                { name: 'Timeout Ends', value: `<t:${Math.floor((Date.now() + timeoutDuration) / 1000)}:R>` }
-              )
-              .setTimestamp();
-              
-            await interaction.editReply({ embeds: [successEmbed] });
-            
-            // Log to mod-logs if the channel exists
-            const modLogsChannel = interaction.guild?.channels.cache.find(
-              (channel: any) => channel.name === 'mod-logs' && channel.isTextBased()
-            );
-            
-            if (modLogsChannel && modLogsChannel.isTextBased()) {
-              await modLogsChannel.send({ embeds: [successEmbed] });
-            }
-          } catch (error) {
-            await interaction.editReply(`Failed to timeout ${member.user.tag}: ${error.message}`);
-          }
-          break;
-          
         case 'untimeout':
         case 'unmute':
           if (!member) {
@@ -522,12 +380,36 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
         switch (subcommand) {
           case 'enable':
             await storage.updateServer(interaction.guildId, { antiPingEnabled: true });
-            await interaction.editReply('Anti-ping protection has been enabled.');
+            
+            const enableEmbed = new EmbedBuilder()
+              .setColor(0x57F287) // Green for enabled
+              .setTitle('Anti-Ping Protection Enabled')
+              .setDescription('Anti-ping protection is now active on this server.')
+              .addFields(
+                { name: 'Status', value: '✅ Enabled' },
+                { name: 'Action By', value: interaction.user.tag }
+              )
+              .setFooter({ text: 'Users pinging excessively will now be automatically timed out' })
+              .setTimestamp();
+              
+            await interaction.editReply({ embeds: [enableEmbed] });
             break;
             
           case 'disable':
             await storage.updateServer(interaction.guildId, { antiPingEnabled: false });
-            await interaction.editReply('Anti-ping protection has been disabled.');
+            
+            const disableEmbed = new EmbedBuilder()
+              .setColor(0xED4245) // Red for disabled
+              .setTitle('Anti-Ping Protection Disabled')
+              .setDescription('Anti-ping protection has been deactivated on this server.')
+              .addFields(
+                { name: 'Status', value: '❌ Disabled' },
+                { name: 'Action By', value: interaction.user.tag }
+              )
+              .setFooter({ text: 'Users will no longer be timed out for excessive pinging' })
+              .setTimestamp();
+              
+            await interaction.editReply({ embeds: [disableEmbed] });
             break;
             
           case 'set-bypass-role':
@@ -537,7 +419,19 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
             }
             
             await storage.updateServer(interaction.guildId, { antiPingBypassRole: role.id });
-            await interaction.editReply(`Set ${role.name} as the anti-ping bypass role.`);
+            
+            const bypassEmbed = new EmbedBuilder()
+              .setColor(0x3498DB)
+              .setTitle('Anti-Ping Bypass Role Updated')
+              .setDescription(`Users with the ${role.name} role can now bypass anti-ping restrictions.`)
+              .addFields(
+                { name: 'Role', value: role.name },
+                { name: 'Role ID', value: role.id },
+                { name: 'Updated By', value: interaction.user.tag }
+              )
+              .setTimestamp();
+              
+            await interaction.editReply({ embeds: [bypassEmbed] });
             break;
             
           case 'set-protected-role':
@@ -547,7 +441,19 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
             }
             
             await storage.updateServer(interaction.guildId, { antiPingProtectedRole: role.id });
-            await interaction.editReply(`Set ${role.name} as the anti-ping protected role.`);
+            
+            const protectedEmbed = new EmbedBuilder()
+              .setColor(0x3498DB)
+              .setTitle('Anti-Ping Protected Role Updated')
+              .setDescription(`The ${role.name} role is now protected from excessive pings.`)
+              .addFields(
+                { name: 'Role', value: role.name },
+                { name: 'Role ID', value: role.id },
+                { name: 'Updated By', value: interaction.user.tag }
+              )
+              .setTimestamp();
+              
+            await interaction.editReply({ embeds: [protectedEmbed] });
             break;
             
           case 'add-excluded-role':
@@ -570,7 +476,19 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
             
             excludedRoles.push(role.id);
             await storage.updateServer(interaction.guildId, { antiPingExcludedRoles: excludedRoles });
-            await interaction.editReply(`Added ${role.name} to anti-ping exclusions.`);
+            
+            const addExcludeEmbed = new EmbedBuilder()
+              .setColor(0x3498DB)
+              .setTitle('Role Added to Anti-Ping Exclusions')
+              .setDescription(`The ${role.name} role has been added to the anti-ping exclusion list.`)
+              .addFields(
+                { name: 'Role', value: role.name },
+                { name: 'Role ID', value: role.id },
+                { name: 'Updated By', value: interaction.user.tag }
+              )
+              .setTimestamp();
+              
+            await interaction.editReply({ embeds: [addExcludeEmbed] });
             break;
             
           case 'remove-excluded-role':
@@ -593,7 +511,19 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
             
             const updatedExcludedRoles = currentExcludedRoles.filter(id => id !== role.id);
             await storage.updateServer(interaction.guildId, { antiPingExcludedRoles: updatedExcludedRoles });
-            await interaction.editReply(`Removed ${role.name} from anti-ping exclusions.`);
+            
+            const removeExcludeEmbed = new EmbedBuilder()
+              .setColor(0x3498DB)
+              .setTitle('Role Removed from Anti-Ping Exclusions')
+              .setDescription(`The ${role.name} role has been removed from the anti-ping exclusion list.`)
+              .addFields(
+                { name: 'Role', value: role.name },
+                { name: 'Role ID', value: role.id },
+                { name: 'Updated By', value: interaction.user.tag }
+              )
+              .setTimestamp();
+              
+            await interaction.editReply({ embeds: [removeExcludeEmbed] });
             break;
             
           case 'settings':
@@ -617,12 +547,43 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
               ).join(', ') : 
               'None';
             
-            await interaction.editReply(`**Anti-Ping Settings**
-- Status: ${settings.antiPingEnabled ? 'Enabled' : 'Disabled'}
-- Bypass Role: ${bypassRole}
-- Protected Role: ${protectedRole}
-- Excluded Roles: ${excludedRoleNames}
-- Punishment: ${settings.antiPingPunishment || 'timeout'}`);
+            // Color based on enabled status
+            const settingsColor = settings.antiPingEnabled ? 0x57F287 : 0xED4245;
+            
+            const settingsEmbed = new EmbedBuilder()
+              .setColor(settingsColor)
+              .setTitle('Anti-Ping Protection Settings')
+              .setDescription('Current configuration for anti-ping protection on this server.')
+              .addFields(
+                { 
+                  name: 'Status', 
+                  value: settings.antiPingEnabled ? '✅ Enabled' : '❌ Disabled', 
+                  inline: true 
+                },
+                { 
+                  name: 'Punishment Type', 
+                  value: settings.antiPingPunishment || 'timeout', 
+                  inline: true 
+                },
+                { 
+                  name: 'Bypass Role', 
+                  value: bypassRole,
+                  inline: true 
+                },
+                { 
+                  name: 'Protected Role', 
+                  value: protectedRole, 
+                  inline: true 
+                },
+                { 
+                  name: 'Excluded Roles', 
+                  value: excludedRoleNames 
+                }
+              )
+              .setFooter({ text: `Server ID: ${interaction.guildId}` })
+              .setTimestamp();
+            
+            await interaction.editReply({ embeds: [settingsEmbed] });
             break;
             
           default:
@@ -636,11 +597,56 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     case CommandCategory.UTILITY:
       switch (command.name) {
         case 'ping':
-          const latency = Math.round(client.ws.ping);
-          await interaction.reply(`Pong! 🏓 Bot latency: ${latency}ms`);
+          // Use the original text command implementation
+          await advancedImplementationNeeded();
           break;
         
         case 'help':
+          const commandParam = interaction.options.getString('command');
+          
+          if (commandParam) {
+            // Search for the specific command
+            const command = interaction.client.commands.get(commandParam.toLowerCase());
+            
+            if (!command) {
+              await interaction.reply({
+                content: `Command \`${commandParam}\` not found. Use \`/help\` to see all available commands.`,
+                ephemeral: true
+              });
+              return;
+            }
+            
+            // Create an embed for the specific command
+            const commandHelpEmbed = new EmbedBuilder()
+              .setColor(0x3498DB)
+              .setTitle(`Command: ${command.name}`)
+              .setDescription(command.description)
+              .addFields(
+                { name: 'Usage', value: command.usage.replace(/^!/, '+') },
+                { name: 'Category', value: command.category },
+                { name: 'Cooldown', value: `${command.cooldown} seconds` }
+              );
+              
+            if (command.aliases && command.aliases.length > 0) {
+              commandHelpEmbed.addFields({ name: 'Aliases', value: command.aliases.join(', ') });
+            }
+            
+            if (command.requiredPermissions && command.requiredPermissions.length > 0) {
+              const permNames = command.requiredPermissions.map((perm: any) => {
+                const permName = String(perm).replace(/([A-Z])/g, ' $1').trim();
+                return `\`${permName}\``;
+              });
+              commandHelpEmbed.addFields({ name: 'Required Permissions', value: permNames.join(', ') });
+            }
+            
+            await interaction.reply({
+              embeds: [commandHelpEmbed],
+              ephemeral: true
+            });
+            return;
+          }
+          
+          // Show all commands if no specific command was requested
           const categories = Object.values(CommandCategory);
           const commandsByCategory: Record<string, string[]> = {};
           
@@ -652,21 +658,26 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
             commandsByCategory[cmd.category].push(cmd.name);
           }
           
-          let helpMessage = '**Available Commands**\n\n';
+          // Create a help embed
+          const helpEmbed = new EmbedBuilder()
+            .setColor(0x3498DB)
+            .setTitle('Bot Commands')
+            .setDescription('Here are all the available commands:')
+            .setFooter({ text: 'For detailed help on a specific command, use `/help [command]` or `+help [command]`' });
           
+          // Add each category as a field
           for (const category of categories) {
             const commands = commandsByCategory[category] || [];
             if (commands.length > 0) {
-              helpMessage += `**${category}**\n`;
-              helpMessage += commands.map(cmd => `\`/${cmd}\` or \`+${cmd}\``).join(', ');
-              helpMessage += '\n\n';
+              helpEmbed.addFields({
+                name: `${category} Commands`,
+                value: commands.map(cmd => `\`${cmd}\``).join(', ')
+              });
             }
           }
           
-          helpMessage += 'For detailed help on a specific command, use `/help [command]` or `+help [command]`';
-          
           await interaction.reply({
-            content: helpMessage,
+            embeds: [helpEmbed],
             ephemeral: true
           });
           break;
@@ -724,58 +735,10 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     case CommandCategory.FUN:
       switch (command.name) {
         case '8ball':
-          const question = interaction.options.getString('question');
-          if (!question) {
-            await interaction.reply('You need to ask a question!');
-            return;
-          }
-          
-          const responses = [
-            'It is certain.', 'It is decidedly so.', 'Without a doubt.',
-            'Yes definitely.', 'You may rely on it.', 'As I see it, yes.',
-            'Most likely.', 'Outlook good.', 'Yes.', 'Signs point to yes.',
-            'Reply hazy, try again.', 'Ask again later.', 'Better not tell you now.',
-            'Cannot predict now.', 'Concentrate and ask again.',
-            'Don\'t count on it.', 'My reply is no.', 'My sources say no.',
-            'Outlook not so good.', 'Very doubtful.'
-          ];
-          
-          const response = responses[Math.floor(Math.random() * responses.length)];
-          
-          await interaction.reply({
-            content: `**Question:** ${question}\n**Answer:** ${response}`,
-            ephemeral: false
-          });
-          break;
-          
         case 'roll':
-          const diceCount = amount || 1;
-          if (diceCount < 1 || diceCount > 10) {
-            await interaction.reply('You can roll between 1 and 10 dice at once.');
-            return;
-          }
-          
-          const results = [];
-          let total = 0;
-          
-          for (let i = 0; i < diceCount; i++) {
-            const roll = Math.floor(Math.random() * 6) + 1;
-            results.push(roll);
-            total += roll;
-          }
-          
-          await interaction.reply({
-            content: `You rolled ${diceCount} dice: ${results.join(', ')}. Total: ${total}`,
-            ephemeral: false
-          });
-          break;
-          
         case 'coinflip':
-          const result = Math.random() < 0.5 ? 'Heads' : 'Tails';
-          await interaction.reply(`The coin landed on: **${result}**`);
-          break;
-          
         default:
+          // Use the original text command implementation for all fun commands
           await advancedImplementationNeeded();
       }
       break;
