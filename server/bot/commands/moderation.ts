@@ -186,8 +186,8 @@ export const moderationCommands: Command[] = [
   // 1. Ban command
   {
     name: 'ban',
-    description: 'Bans a user from the server permanently',
-    usage: '!ban [@user] [reason]',
+    description: 'Bans a user from the server with optional duration',
+    usage: '+ban [@user] [duration] [reason]',
     category: CommandCategory.MODERATION,
     cooldown: 3,
     requiredPermissions: [PermissionsBitField.Flags.BanMembers],
@@ -217,8 +217,30 @@ export const moderationCommands: Command[] = [
         }
       }
 
+      // Parse duration and reason
+      let duration = 0; // 0 means permanent
+      let reasonStartIndex = 1;
+      
+      // Check if second argument is a duration (e.g., 1d, 7d, 30d)
+      if (args.length > 1) {
+        // Look for patterns like 1d, 7d, 30d, 1h, etc.
+        if (/^\d+[smhdw]$/.test(args[1])) {
+          try {
+            // Convert to milliseconds using the ms library or similar function
+            duration = require('ms')(args[1]);
+            reasonStartIndex = 2; // Reason starts after the duration
+          } catch (error) {
+            // If parsing fails, assume it's part of the reason
+            duration = 0;
+          }
+        }
+      }
+      
       // Extract reason
-      const reason = args.slice(1).join(' ') || 'No reason provided';
+      const reason = args.slice(reasonStartIndex).join(' ') || 'No reason provided';
+      
+      // Get duration text
+      const durationText = duration > 0 ? formatDuration(duration) : 'Permanent';
 
       try {
         // If the member is in the guild, try to send them a DM before banning
@@ -229,7 +251,8 @@ export const moderationCommands: Command[] = [
             ModAction.BAN,
             message.guild?.name || 'Server',
             reason,
-            message.author.tag
+            message.author.tag,
+            durationText
           );
         }
 
@@ -241,7 +264,7 @@ export const moderationCommands: Command[] = [
         
         // Log to mod logs
         if (message.guild && member) {
-          await logModAction(message, ModAction.BAN, member, reason);
+          await logModAction(message, ModAction.BAN, member, reason, durationText);
         }
         
         // Log activity for dashboard
@@ -250,8 +273,40 @@ export const moderationCommands: Command[] = [
             serverId: message.guild.id,
             userId: message.author.id,
             username: message.author.tag,
-            command: `ban ${user.tag}`
+            command: `ban ${user.tag} ${duration > 0 ? args[1] : ''}`
           });
+        }
+        
+        // If duration is specified and not permanent, schedule unban
+        if (duration > 0 && message.guild) {
+          const guildId = message.guild.id;
+          const userId = user.id;
+          const unbanReason = `Temporary ban for ${durationText} has expired`;
+          
+          setTimeout(async () => {
+            try {
+              // Fetch the guild to make sure it still exists
+              const guild = message.client.guilds.cache.get(guildId);
+              if (!guild) return;
+              
+              // Unban the user
+              await guild.bans.remove(userId, unbanReason);
+              
+              // Log the unban
+              const unbanMessage = {
+                guild,
+                author: message.client.user,
+                channel: message.channel
+              } as Message;
+              
+              await logModAction(unbanMessage, ModAction.UNBAN, { id: userId, user: { tag: user.tag } } as any, unbanReason);
+              
+              // Log to console
+              console.log(`[Auto-unban] Unbanned ${user.tag} (${userId}) from ${guild.name} (${guildId}) - Temporary ban expired`);
+            } catch (unbanError) {
+              console.error(`Error auto-unbanning user after temporary ban: ${unbanError}`);
+            }
+          }, duration);
         }
 
         // Send success message
@@ -260,6 +315,7 @@ export const moderationCommands: Command[] = [
           .setTitle('User Banned')
           .setDescription(`${user.tag} has been banned from the server.`)
           .addFields(
+            { name: 'Duration', value: durationText },
             { name: 'Reason', value: reason },
             { name: 'Moderator', value: message.author.tag },
             { name: 'DM Notification', value: dmSuccess ? '✅ User was notified via DM' : '❌ Could not DM user' }
