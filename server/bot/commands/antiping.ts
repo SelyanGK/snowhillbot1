@@ -230,7 +230,7 @@ export const antipingCommands: Command[] = [
   {
     name: 'pingblock',
     description: 'Blocks pings from a specific user',
-    usage: '!pingblock [@user] [optional: reason]',
+    usage: '+pingblock [@user] [optional: reason]',
     category: CommandCategory.ANTIPING,
     cooldown: 3,
     requiredPermissions: [PermissionsBitField.Flags.ModerateMembers],
@@ -323,7 +323,7 @@ export const antipingCommands: Command[] = [
   {
     name: 'pingunblock',
     description: 'Unblocks pings from a previously blocked user',
-    usage: '!pingunblock [@user]',
+    usage: '+pingunblock [@user]',
     aliases: ['unpingblock'],
     category: CommandCategory.ANTIPING,
     cooldown: 3,
@@ -409,7 +409,7 @@ export const antipingCommands: Command[] = [
   {
     name: 'pingblocklist',
     description: 'Lists all users blocked from pinging others',
-    usage: '!pingblocklist',
+    usage: '+pingblocklist',
     aliases: ['blockedpings', 'listpingblocks'],
     category: CommandCategory.ANTIPING,
     cooldown: 5,
@@ -472,7 +472,7 @@ export const antipingCommands: Command[] = [
   {
     name: 'antiraid',
     description: 'Enables anti-raid mode which includes strict ping protection',
-    usage: '!antiraid [on/off]',
+    usage: '+antiraid [on/off]',
     category: CommandCategory.ANTIPING,
     cooldown: 5,
     requiredPermissions: [PermissionsBitField.Flags.ManageGuild],
@@ -546,7 +546,7 @@ export const antipingCommands: Command[] = [
               { name: 'Duration', value: 'Anti-raid mode will stay active until manually disabled.' },
               { name: 'Moderator', value: message.author.tag }
             )
-            .setFooter({ text: 'Use !antiraid off to disable when the threat has passed' })
+            .setFooter({ text: 'Use +antiraid off to disable when the threat has passed' })
             .setTimestamp();
 
           return message.reply({ embeds: [embed] });
@@ -560,7 +560,7 @@ export const antipingCommands: Command[] = [
               { name: 'Note', value: 'Anti-ping protection remains enabled, but with normal sensitivity.' },
               { name: 'Moderator', value: message.author.tag }
             )
-            .setFooter({ text: 'You can use !antiping off to completely disable ping protection' })
+            .setFooter({ text: 'You can use +antiping off to completely disable ping protection' })
             .setTimestamp();
 
           return message.reply({ embeds: [embed] });
@@ -576,7 +576,7 @@ export const antipingCommands: Command[] = [
   {
     name: 'pingshield',
     description: 'Enables personal ping shield to reduce notifications',
-    usage: '!pingshield [on/off]',
+    usage: '+pingshield [on/off]',
     aliases: ['shieldping', 'noping'],
     category: CommandCategory.ANTIPING,
     cooldown: 10,
@@ -610,7 +610,7 @@ export const antipingCommands: Command[] = [
               ].join('\n') },
               { name: 'Status', value: '✅ Active' }
             )
-            .setFooter({ text: 'Use !pingshield off to disable this feature' });
+            .setFooter({ text: 'Use +pingshield off to disable this feature' });
 
           return message.reply({ embeds: [embed] });
         } else {
@@ -622,7 +622,7 @@ export const antipingCommands: Command[] = [
               { name: 'What this means', value: 'You will now receive all ping notifications as normal.' },
               { name: 'Status', value: '❌ Inactive' }
             )
-            .setFooter({ text: 'Use !pingshield on to enable this feature again' });
+            .setFooter({ text: 'Use +pingshield on to enable this feature again' });
 
           return message.reply({ embeds: [embed] });
         }
@@ -637,7 +637,7 @@ export const antipingCommands: Command[] = [
   {
     name: 'pingstats',
     description: 'Shows statistics about pings in the server',
-    usage: '!pingstats [optional: @user]',
+    usage: '+pingstats [optional: @user]',
     category: CommandCategory.ANTIPING,
     cooldown: 10,
     requiredPermissions: [],
