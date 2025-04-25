@@ -274,7 +274,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'serverinfo',
     description: 'Displays information about the current server',
-    usage: '!serverinfo',
+    usage: '+serverinfo',
     aliases: ['server', 'guild', 'guildinfo'],
     category: CommandCategory.UTILITY,
     cooldown: 10,
@@ -345,7 +345,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'userinfo',
     description: 'Displays information about a user',
-    usage: '!userinfo [@user]',
+    usage: '+userinfo [@user]',
     aliases: ['whois', 'user'],
     category: CommandCategory.UTILITY,
     cooldown: 5,
@@ -419,7 +419,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'avatar',
     description: 'Shows a user\'s avatar',
-    usage: '!avatar [@user]',
+    usage: '+avatar [@user]',
     aliases: ['pfp', 'icon'],
     category: CommandCategory.UTILITY,
     cooldown: 5,
@@ -456,7 +456,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'stats',
     description: 'Shows statistics about the bot',
-    usage: '!stats',
+    usage: '+stats',
     aliases: ['botstats', 'info', 'botinfo'],
     category: CommandCategory.UTILITY,
     cooldown: 10,
@@ -530,7 +530,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'invite',
     description: 'Generates an invite link for the bot',
-    usage: '!invite',
+    usage: '+invite',
     category: CommandCategory.UTILITY,
     cooldown: 10,
     requiredPermissions: [],
@@ -586,7 +586,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'say',
     description: 'Makes the bot say something',
-    usage: '!say [message]',
+    usage: '+say [message]',
     category: CommandCategory.UTILITY,
     cooldown: 5,
     requiredPermissions: ['ManageMessages'],
@@ -634,7 +634,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'advpoll',
     description: 'Creates an advanced poll with multiple options',
-    usage: '!advpoll "Question" "Option 1" "Option 2" "Option 3"...',
+    usage: '+advpoll "Question" "Option 1" "Option 2" "Option 3"...',
     aliases: ['advancedpoll', 'polladvanced'],
     category: CommandCategory.UTILITY,
     cooldown: 30,
@@ -700,7 +700,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'remind',
     description: 'Sets a reminder for a specified time',
-    usage: '!remind [time] [reminder text]',
+    usage: '+remind [time] [reminder text]',
     aliases: ['reminder', 'remindme'],
     category: CommandCategory.UTILITY,
     cooldown: 5,
@@ -812,7 +812,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'roleinfo',
     description: 'Displays information about a role',
-    usage: '!roleinfo [@role]',
+    usage: '+roleinfo [@role]',
     category: CommandCategory.UTILITY,
     cooldown: 5,
     requiredPermissions: [],
@@ -875,7 +875,7 @@ export const utilityCommands: Command[] = [
   {
     name: 'channelinfo',
     description: 'Displays information about a channel',
-    usage: '!channelinfo [#channel]',
+    usage: '+channelinfo [#channel]',
     aliases: ['channel'],
     category: CommandCategory.UTILITY,
     cooldown: 5,
