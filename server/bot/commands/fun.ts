@@ -1,6 +1,13 @@
 import { Command, getCommandPrefix } from '../utils';
 import { CommandCategory } from '@shared/schema';
-import { EmbedBuilder, AttachmentBuilder } from 'discord.js';
+import { 
+  EmbedBuilder, 
+  AttachmentBuilder, 
+  ChannelType,
+  ButtonBuilder,
+  ButtonStyle,
+  ActionRowBuilder
+} from 'discord.js';
 import axios from 'axios';
 
 // Fun commands collection
@@ -192,10 +199,14 @@ export const funCommands: Command[] = [
             await message.author.send({ embeds: [reminderEmbed] });
           } catch (err) {
             // If DM fails, send in the channel where it was requested
-            await message.channel.send({ 
-              content: `<@${message.author.id}>, here's your reminder:`,
-              embeds: [reminderEmbed] 
-            });
+            if (message.channel.type === ChannelType.GuildText || 
+                message.channel.type === ChannelType.DM ||
+                message.channel.type === ChannelType.GuildPublicThread) {
+              await message.channel.send({ 
+                content: `<@${message.author.id}>, here's your reminder:`,
+                embeds: [reminderEmbed] 
+              });
+            }
           }
           
           // Clean up the reminder
