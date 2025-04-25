@@ -11,13 +11,19 @@ import { CommandCategory } from '@shared/schema';
 const helpCommand: Command = {
   name: 'help',
   description: 'Shows information about available commands',
-  usage: '!help [command]',
+  usage: '+help [command]',
   category: CommandCategory.UTILITY,
   cooldown: 5,
   requiredPermissions: [],
   execute: async (message, args, client) => {
     const { commands } = client;
-    const prefix = '!'; // Default prefix, ideally get from server settings
+    
+    // Determine if this was called via slash command
+    // Check for a property that only exists on interaction objects
+    const isSlashCommand = message.commandName !== undefined;
+    
+    // Set the prefix based on invocation method
+    const prefix = isSlashCommand ? '/' : '+';
 
     // If no args, show all command categories
     if (!args.length) {
@@ -69,12 +75,15 @@ const helpCommand: Command = {
       return message.reply(`Command \`${commandName}\` not found. Use \`${prefix}help\` to see all commands.`);
     }
 
+    // Replace the ! prefix with the current prefix in usage examples
+    const usage = command.usage ? command.usage.replace(/^!/, prefix) : `${prefix}${command.name}`;
+    
     const embed = {
       color: 0x5865F2,
       title: `Command: ${command.name}`,
       fields: [
         { name: 'Description', value: command.description || 'No description available', inline: false },
-        { name: 'Usage', value: command.usage || `${prefix}${command.name}`, inline: false },
+        { name: 'Usage', value: usage, inline: false },
         { name: 'Category', value: command.category, inline: true },
         { name: 'Cooldown', value: `${command.cooldown || 0} seconds`, inline: true },
       ]
