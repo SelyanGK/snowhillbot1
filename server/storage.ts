@@ -139,8 +139,17 @@ export class MemStorage implements IStorage {
   }
 
   async createServer(insertServer: InsertServer): Promise<Server> {
+    // Make sure we have all required fields with defaults
     const server: Server = {
-      ...insertServer,
+      id: insertServer.id,
+      name: insertServer.name,
+      prefix: insertServer.prefix || "+",
+      antiPingEnabled: insertServer.antiPingEnabled !== undefined ? insertServer.antiPingEnabled : false,
+      antiPingExcludedRoles: insertServer.antiPingExcludedRoles || null,
+      antiPingBypassRoles: insertServer.antiPingBypassRoles || null,
+      antiPingProtectedRoles: insertServer.antiPingProtectedRoles || null,
+      antiPingPunishment: insertServer.antiPingPunishment || null,
+      logSettings: insertServer.logSettings || null,
       addedAt: new Date()
     };
     this.servers.set(server.id, server);
@@ -234,8 +243,11 @@ export class MemStorage implements IStorage {
   async createPingBlockedUser(insertBlockedUser: InsertPingBlockedUser): Promise<PingBlockedUser> {
     const id = this.pingBlockedUserIdCounter++;
     const blockedUser: PingBlockedUser = {
-      ...insertBlockedUser,
       id,
+      userId: insertBlockedUser.userId,
+      serverId: insertBlockedUser.serverId,
+      blockedBy: insertBlockedUser.blockedBy,
+      reason: insertBlockedUser.reason || null,
       timestamp: new Date(),
     };
     this.pingBlockedUsers.push(blockedUser);

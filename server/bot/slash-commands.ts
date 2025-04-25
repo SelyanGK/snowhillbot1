@@ -198,6 +198,14 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
     client: interaction.client,
     content: `/${command.name}`,
     commandName: command.name, // Special property to identify slash commands
+    mentions: { // Add mentions object with users and roles collections
+      users: {
+        first: () => user
+      },
+      roles: {
+        first: () => role
+      },
+    },
     reply: async (content: any) => {
       try {
         // Check if the interaction has been replied to or deferred
@@ -416,8 +424,20 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
                 await mockMessage.reply('Please specify a role.');
                 return;
               }
+              
+              // Create more complete mockMessage with mentions.roles for the bypass command
+              const bypassMockMessage = {
+                ...mockMessage,
+                mentions: {
+                  ...mockMessage.mentions,
+                  roles: {
+                    first: () => role 
+                  }
+                }
+              };
+              
               // Use 'bypass' action for the first argument
-              await command.execute(mockMessage, ['bypass', role.id], interaction.client);
+              await command.execute(bypassMockMessage, ['bypass'], interaction.client);
             } 
             else if (subcommand === 'set-protected-role') {
               // Handle set-protected-role subcommand
@@ -426,8 +446,20 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
                 await mockMessage.reply('Please specify a role.');
                 return;
               }
+              
+              // Create more complete mockMessage with mentions.roles for the protect command
+              const protectMockMessage = {
+                ...mockMessage,
+                mentions: {
+                  ...mockMessage.mentions,
+                  roles: {
+                    first: () => role 
+                  }
+                }
+              };
+              
               // Use 'protect' action for the first argument
-              await command.execute(mockMessage, ['protect', role.id], interaction.client);
+              await command.execute(protectMockMessage, ['protect'], interaction.client);
             } 
             else if (subcommand === 'add-excluded-role') {
               // Handle add-excluded-role subcommand
@@ -436,8 +468,20 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
                 await mockMessage.reply('Please specify a role.');
                 return;
               }
+              
+              // Create more complete mockMessage with mentions.roles for the exclude command
+              const excludeMockMessage = {
+                ...mockMessage,
+                mentions: {
+                  ...mockMessage.mentions,
+                  roles: {
+                    first: () => role 
+                  }
+                }
+              };
+              
               // Use 'exclude' action for the first argument
-              await command.execute(mockMessage, ['exclude', role.id], interaction.client);
+              await command.execute(excludeMockMessage, ['exclude'], interaction.client);
             } 
             else if (subcommand === 'remove-excluded-role') {
               // Handle remove-excluded-role subcommand
@@ -446,8 +490,20 @@ async function executeSlashCommand(interaction: ChatInputCommandInteraction, com
                 await mockMessage.reply('Please specify a role.');
                 return;
               }
+              
+              // Create more complete mockMessage with mentions.roles for the include command
+              const includeMockMessage = {
+                ...mockMessage,
+                mentions: {
+                  ...mockMessage.mentions,
+                  roles: {
+                    first: () => role 
+                  }
+                }
+              };
+              
               // Use 'include' action for the first argument
-              await command.execute(mockMessage, ['include', role.id], interaction.client);
+              await command.execute(includeMockMessage, ['include'], interaction.client);
             } 
             else if (subcommand === 'settings') {
               // Handle settings subcommand - no args needed for settings display
