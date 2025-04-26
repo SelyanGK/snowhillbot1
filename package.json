@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
-    "start": "NODE_ENV=production tsx server/index.ts",  // Utilisation de tsx pour lancer le fichier .ts
+    "start": "NODE_ENV=production tsx server/index.ts",
     "check": "tsc",
     "db:push": "drizzle-kit push",
-    "vercel-start": "tsx server/index.ts"  // Utilisation de tsx pour démarrer l'app sur Vercel
+    "vercel-start": "tsx server/index.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
