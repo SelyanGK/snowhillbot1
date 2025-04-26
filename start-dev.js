@@ -1,13 +1,37 @@
-// start-dev.js (ESM-compatible version)
-import { spawn } from 'child_process';
+const express = require('express');
+const { spawn } = require('child_process');
 
-// Start the TypeScript bot with ts-node-esm
-const proc = spawn('npx', ['ts-node-esm', 'server/index.ts'], {
-  stdio: 'inherit',  // This makes sure all console output from the bot shows up in the terminal
-  shell: true        // This is necessary to ensure shell compatibility
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Express app for keep-alive
+app.get('/', (req, res) => {
+  res.send('Bot is alive and running!');
 });
 
-// Handling process exit
-proc.on('close', (code) => {
-  console.log(`Bot process exited with code ${code}`);
+let bot;
+
+// Function to start the bot
+function startBot() {
+  bot = spawn('npx', ['ts-node', 'server/index.ts'], { stdio: 'inherit' });
+
+  bot.on('exit', (code, signal) => {
+    console.error(`Bot exited with code ${code} and signal ${signal}`);
+    console.log('Restarting bot in 5 seconds...');
+    setTimeout(startBot, 5000); // Wait 5 seconds before restarting
+  });
+
+  bot.on('error', (err) => {
+    console.error('Failed to start bot:', err);
+    console.log('Retrying to start bot in 5 seconds...');
+    setTimeout(startBot, 5000);
+  });
+}
+
+// Start first bot
+startBot();
+
+// Start express server
+app.listen(port, () => {
+  console.log(`Keep-alive server listening on port ${port}`);
 });
