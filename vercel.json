@@ -1,15 +1,13 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "start-dev.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/start-dev.js"
-    }
-  ]
+  "scripts": {
+    "dev": "ts-node server/index.ts",  // Exécution en mode développement avec ts-node (sans transpiler manuellement)
+    "start": "ts-node server/index.ts",  // Exécution en mode production sur Vercel (sans compilation manuelle)
+    "build": "echo 'Pas de build nécessaire pour ce bot.'",  // Aucune étape de build requise pour ce bot
+    "check": "tsc --noEmit"  // Vérification du code TypeScript
+  },
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "ts-node": "^10.0.0",  // Ajout de ts-node pour exécuter du TypeScript sans étape de build
+    "typescript": "^4.5.0"  // TypeScript pour valider le code
+  }
 }
